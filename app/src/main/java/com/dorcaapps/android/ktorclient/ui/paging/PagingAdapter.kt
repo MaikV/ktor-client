@@ -4,10 +4,13 @@ import android.view.ViewGroup
 import androidx.paging.PagingDataAdapter
 import androidx.recyclerview.widget.DiffUtil
 
-class PagingAdapter : PagingDataAdapter<MediaData, PagingViewHolder>(getDiffCallback()) {
+class PagingAdapter(
+    private val onClick: (mediaData: MediaData) -> Unit
+) : PagingDataAdapter<MediaData, PagingViewHolder>(getDiffCallback()) {
 
     override fun onBindViewHolder(holder: PagingViewHolder, position: Int) {
         holder.bind(getItem(position)!!)
+        holder.itemView.setOnClickListener { onClick(getItem(position)!!) }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PagingViewHolder =

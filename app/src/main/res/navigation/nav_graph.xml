@@ -10,5 +10,25 @@
         android:name="com.dorcaapps.android.ktorclient.ui.paging.PagingFragment"
         android:label="PagingFragment"
         tools:layout="@layout/fragment_paging"
-        />
+        >
+        <action
+            android:id="@+id/action_pagingFragment_to_detailFragment"
+            app:destination="@id/detailImageFragment" />
+        <action
+            android:id="@+id/action_pagingFragment_to_detailVideoFragment"
+            app:destination="@id/detailVideoFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/detailImageFragment"
+        android:name="com.dorcaapps.android.ktorclient.ui.detail.DetailImageFragment"
+        android:label="DetailImageFragment" />
+    <fragment
+        android:id="@+id/detailVideoFragment"
+        android:name="com.dorcaapps.android.ktorclient.ui.detail.DetailVideoFragment"
+        android:label="DetailVideoFragment" >
+        <argument
+            android:name="mediaId"
+            app:argType="integer"
+            android:defaultValue="-1" />
+    </fragment>
 </navigation>
