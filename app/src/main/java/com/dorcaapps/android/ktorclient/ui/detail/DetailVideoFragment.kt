@@ -16,6 +16,7 @@ import dagger.hilt.android.AndroidEntryPoint
 class DetailVideoFragment : Fragment() {
     private val viewModel: DetailVideoViewModel by viewModels()
     private val args: DetailVideoFragmentArgs by navArgs()
+    private val currentVideoUri: Uri? = null
     private lateinit var binding: FragmentVideoDetailBinding
 
     override fun onCreateView(
@@ -34,6 +35,20 @@ class DetailVideoFragment : Fragment() {
         val mediaId = args.mediaId.takeIf { it > -1 } ?: return
         viewModel.setVideoId(mediaId)
         viewModel.videoUri.observe(viewLifecycleOwner, ::playVideo)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        restoreVideo()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        binding.videoView.stopPlayback()
+    }
+
+    private fun restoreVideo() {
+        playVideo(currentVideoUri ?: return)
     }
 
     private fun playVideo(videoUri: Uri) {

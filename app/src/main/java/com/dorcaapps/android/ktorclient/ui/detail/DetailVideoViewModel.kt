@@ -7,27 +7,26 @@ import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import com.dorcaapps.android.ktorclient.model.Repository
 import com.dorcaapps.android.ktorclient.model.Resource
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.*
 
 class DetailVideoViewModel @ViewModelInject constructor(
     private val repository: Repository
 ) : ViewModel() {
-    private val _videoUri = MutableStateFlow<Uri?>(null)
-    val videoUri = _videoUri.filterNotNull().asLiveData(context = viewModelScope.coroutineContext)
+    private val resource = MutableStateFlow<Resource<Uri>?>(null)
+
+    val videoUri = resource
+        .filterIsInstance<Resource.Success<Uri>>()
+        .map { it.data }
+        .asLiveData(context = viewModelScope.coroutineContext)
+
+    val isLoading =
+        resource
+            .map { it is Resource.Loading }
+            .asLiveData(viewModelScope.coroutineContext)
 
     fun setVideoId(id: Int) {
         repository.getFileUri(id)
-            .onEach { resource ->
-                when (resource) {
-                    is Resource.Success -> _videoUri.value = resource.data
-                    is Resource.Loading -> {
-                    }
-                    is Resource.Error -> {
-                    }
-                }
-            }.launchIn(viewModelScope)
+            .onEach { resource.value = it }
+            .launchIn(viewModelScope)
     }
 }

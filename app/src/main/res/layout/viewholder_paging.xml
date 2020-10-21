@@ -11,19 +11,31 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:background="#000000"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="200dp">
 
         <ImageView
+            android:id="@+id/preview_image"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="#FF0000"
+            android:layout_height="match_parent"
             android:layout_margin="4dp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
             glideImage="@{`http://192.168.178.21:8080/media/` + data.id + `/thumbnail`}"
             />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#5000"
+            />
+
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:src="@drawable/play_video"
+            app:tint="#FFF" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>
