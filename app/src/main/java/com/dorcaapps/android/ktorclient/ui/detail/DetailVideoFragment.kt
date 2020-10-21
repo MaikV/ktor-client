@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.MediaController
+import androidx.core.net.toFile
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.navArgs
@@ -54,6 +55,7 @@ class DetailVideoFragment : Fragment() {
     private fun playVideo(videoUri: Uri) {
         val videoView = binding.videoView
         videoView.setVideoURI(videoUri)
+        videoUri.toFile().delete()
 
         val mediaController = MediaController(requireContext())
         mediaController.setAnchorView(videoView)
