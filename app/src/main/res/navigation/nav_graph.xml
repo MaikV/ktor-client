@@ -16,7 +16,8 @@
             app:destination="@id/detailImageFragment" />
         <action
             android:id="@+id/action_pagingFragment_to_detailVideoFragment"
-            app:destination="@id/detailVideoFragment" />
+            app:destination="@id/detailVideoFragment"
+            app:launchSingleTop="true" />
     </fragment>
     <fragment
         android:id="@+id/detailImageFragment"

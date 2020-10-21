@@ -3,6 +3,7 @@ package com.dorcaapps.android.ktorclient.ui
 import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
+import androidx.navigation.findNavController
 import com.dorcaapps.android.ktorclient.R
 import dagger.hilt.android.AndroidEntryPoint
 import io.ktor.client.*
@@ -31,6 +32,10 @@ class MainActivity : AppCompatActivity() {
     override fun onPostCreate(savedInstanceState: Bundle?) {
         super.onPostCreate(savedInstanceState)
 //        startKtor()
+    }
+
+    override fun onSupportNavigateUp(): Boolean {
+        return findNavController(R.id.nav_host).navigateUp() || super.onSupportNavigateUp()
     }
 
     private fun startKtor() {
