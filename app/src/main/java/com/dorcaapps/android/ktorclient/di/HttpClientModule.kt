@@ -1,5 +1,6 @@
 package com.dorcaapps.android.ktorclient.di
 
+import com.dorcaapps.android.ktorclient.model.AuthManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -7,6 +8,7 @@ import dagger.hilt.android.components.ApplicationComponent
 import io.ktor.client.*
 import io.ktor.client.engine.okhttp.*
 import io.ktor.client.features.*
+import io.ktor.client.features.auth.*
 import io.ktor.client.features.json.*
 import io.ktor.client.features.json.serializer.*
 import io.ktor.http.*
@@ -18,7 +20,7 @@ import javax.inject.Singleton
 object HttpClientModule {
     @Provides
     @Singleton
-    fun provideHttpClient() = HttpClient(OkHttp) {
+    fun provideHttpClient(authManager: AuthManager) = HttpClient(OkHttp) {
         engine {
             val loggingInterceptor =
                 HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY }
@@ -32,6 +34,7 @@ object HttpClientModule {
             url.port = 8080
             url.host = "192.168.178.21"
         }
+        install(Auth, authManager.authConfig)
         /** Logging breaks file upload, using HttpLoggingInterceptor instead */
 //            install(Logging) {
 //                logger = Logger.DEFAULT

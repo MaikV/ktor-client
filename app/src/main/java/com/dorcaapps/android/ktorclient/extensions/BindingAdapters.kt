@@ -5,8 +5,6 @@ import android.widget.ImageView
 import androidx.core.view.isVisible
 import androidx.databinding.BindingAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.bumptech.glide.Glide
-import com.bumptech.glide.load.engine.DiskCacheStrategy
 
 @BindingAdapter("adapter")
 fun setAdapter(recyclerView: RecyclerView, adapter: RecyclerView.Adapter<*>) {
@@ -20,10 +18,10 @@ fun setLayoutManager(recyclerView: RecyclerView, layoutManager: RecyclerView.Lay
 
 @BindingAdapter("glideImage")
 fun setGlideImage(imageView: ImageView, url: String) {
-    Glide.with(imageView)
-        .load(url)
-        .diskCacheStrategy(DiskCacheStrategy.NONE)
-        .into(imageView)
+//    Glide.with(imageView)
+//        .load(url)
+//        .diskCacheStrategy(DiskCacheStrategy.NONE)
+//        .into(imageView)
 }
 
 @BindingAdapter("isVisible")
