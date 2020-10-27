@@ -8,8 +8,10 @@ import androidx.paging.PagingData
 import com.dorcaapps.android.ktorclient.ui.paging.MediaData
 import com.dorcaapps.android.ktorclient.ui.paging.MediaPagingSource
 import io.ktor.client.*
+import io.ktor.client.features.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
+import io.ktor.http.*
 import io.ktor.util.cio.*
 import io.ktor.utils.io.*
 import kotlinx.coroutines.Dispatchers
@@ -22,11 +24,11 @@ class Repository @Inject constructor(private val client: HttpClient) {
     fun getFileUri(id: Int): Flow<Resource<Uri>> = flow<Resource<Uri>> {
         val response = client.get<HttpResponse>(path = "media/$id").throwOnError()
         val responseFile = File.createTempFile("prefix$id", null)
-        responseFile.deleteOnExit()
         val writeChannel = responseFile.writeChannel()
         response.content.copyAndClose(writeChannel)
         emit(Resource.Success(responseFile.toUri()))
-    }.addResourceHandling()
+    }.addRetryWithLogin().addResourceHandling()
+
 
     fun getPaging(): Flow<PagingData<MediaData>> {
         val pageSize = 6
@@ -46,22 +48,43 @@ class Repository @Inject constructor(private val client: HttpClient) {
         ).flow
     }
 
-    private suspend fun getMediaPage(page: Int, pageSize: Int): List<MediaData> {
-        return client.get(path = "media") {
+    suspend fun login() {
+        client.get<Unit>(path = "login")
+    }
+
+//    private suspend fun getMediaPage(page: Int, pageSize: Int): List<MediaData> =
+//        client.get(path = "media") {
+//            parameter("page", page)
+//            parameter("pageSize", pageSize)
+//            parameter("order", OrderType.MOST_RECENT_FIRST)
+//        }
+
+    private suspend fun getMediaPage(page: Int, pageSize: Int) = flow<List<MediaData>> {
+        emit(client.get(path = "media") {
             parameter("page", page)
             parameter("pageSize", pageSize)
             parameter("order", OrderType.MOST_RECENT_FIRST)
-        }
-    }
+        })
+    }.addRetryWithLogin()
+
 
     private fun HttpResponse.throwOnError() =
         if (status.value in 200..299) this
-        else throw IllegalStateException(status.value.toString() + status.description)
+        else throw ClientRequestException(call.response)
 
     private fun <T> Flow<Resource<T>>.addResourceHandling() =
         onStart {
             emit(Resource.Loading)
         }.catch {
             emit(Resource.Error(it))
-        }.flowOn(Dispatchers.IO)
+        }
+            .flowOn(Dispatchers.IO)
+
+    private fun <T> Flow<T>.addRetryWithLogin() =
+        retry(1) {
+            val shouldRetry =
+                (it as? ClientRequestException)?.response?.status == HttpStatusCode.Unauthorized
+            if (shouldRetry) login()
+            shouldRetry
+        }
 }

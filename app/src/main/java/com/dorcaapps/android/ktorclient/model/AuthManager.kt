@@ -16,10 +16,6 @@ class AuthManager @Inject constructor() {
     fun reloadAuthProvider() {
         auth.providers.clear()
         auth.apply {
-            basic {
-                username = "name"
-                password = "pass"
-            }
             digest {
                 username = "username"
                 password = "Circle Of Life"
