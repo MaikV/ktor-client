@@ -25,7 +25,7 @@ class DetailVideoViewModel @ViewModelInject constructor(
             .asLiveData(viewModelScope.coroutineContext)
 
     fun setVideoId(id: Int) {
-        repository.getFileUri(id)
+        repository.getMediaFileUri(id)
             .onEach { resource.value = it }
             .launchIn(viewModelScope)
     }

@@ -17,7 +17,7 @@ class PagingViewModel @ViewModelInject constructor(
 ) : ViewModel() {
     private val navigationChannel = ConflatedBroadcastChannel<NavDirections>()
     val navigation = navigationChannel.openSubscription()
-    val adapter = PagingAdapter { navigate(it) }
+    val adapter = PagingAdapter(repository) { navigate(it) }
     private val pagingFlow = repository.getPaging()
 
     init {
