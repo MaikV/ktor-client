@@ -36,7 +36,8 @@ object HttpClientModule {
         install(DefaultRequest) {
             url.protocol = URLProtocol.HTTP
             url.port = 8080
-            url.host = "192.168.178.21"
+//            url.host = "192.168.178.21"
+            url.host = "192.168.178.29"
         }
         install(HttpCookies) {
             storage = AcceptAllCookiesStorage()

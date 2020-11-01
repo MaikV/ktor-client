@@ -30,6 +30,7 @@ import javax.inject.Inject
 
 class Repository @Inject constructor(
     private val client: HttpClient,
+    private val authManager: AuthManager,
     @ApplicationContext private val context: Context
 ) {
 
@@ -92,11 +93,20 @@ class Repository @Inject constructor(
                 ) {
                     this.method = HttpMethod.Post
                 }.throwOnError()
-            }.addRetryWithLogin().launchIn(MainScope())
+            }.addRetryWithLogin().launchIn(MainScope()).join()
         }
     }
 
-    suspend fun login() {
+    fun loginWithNewCredentials(username: String, password: String): Flow<Resource<Unit>> {
+        authManager.username = username
+        authManager.password = password
+        authManager.reloadAuthProvider()
+        return flow<Resource<Unit>> {
+            emit(Resource.Success(client.get(path = "login")))
+        }.addResourceHandling()
+    }
+
+    private suspend fun loginAgain() {
         client.get<Unit>(path = "login")
     }
 
@@ -119,7 +129,7 @@ class Repository @Inject constructor(
         retry(1) {
             val shouldRetry =
                 (it as? ClientRequestException)?.response?.status == HttpStatusCode.Unauthorized
-            if (shouldRetry) login()
+            if (shouldRetry) loginAgain()
             shouldRetry
         }
 }

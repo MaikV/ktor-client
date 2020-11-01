@@ -8,6 +8,8 @@ import javax.inject.Singleton
 @Singleton
 class AuthManager @Inject constructor() {
     private lateinit var auth: Auth
+    var username = ""
+    var password = ""
     val authConfig: Auth.() -> Unit = {
         this@AuthManager.auth = this
         reloadAuthProvider()
@@ -17,9 +19,9 @@ class AuthManager @Inject constructor() {
         auth.providers.clear()
         auth.apply {
             digest {
-                username = "username"
-                password = "Circle Of Life"
-                realm = "testrealm@host.com"
+                username = this@AuthManager.username
+                password = this@AuthManager.password
+                realm = "login"
             }
         }
     }
