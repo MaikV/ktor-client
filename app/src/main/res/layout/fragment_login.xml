@@ -36,10 +36,12 @@
             android:id="@+id/password_layout"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            app:passwordToggleEnabled="true"
             tools:ignore="MissingConstraints">
             <com.google.android.material.textfield.TextInputEditText
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:inputType="textPassword"
                 android:text="@={viewModel.password}"
                 />
         </com.google.android.material.textfield.TextInputLayout>

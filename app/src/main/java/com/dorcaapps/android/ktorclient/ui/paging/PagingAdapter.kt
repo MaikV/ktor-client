@@ -23,8 +23,6 @@ class PagingAdapter(
         holder.onRecycle()
     }
 
-
-
     companion object {
         fun getDiffCallback() = object : DiffUtil.ItemCallback<MediaData>() {
             override fun areItemsTheSame(oldItem: MediaData, newItem: MediaData): Boolean =

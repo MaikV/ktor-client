@@ -7,16 +7,16 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavDirections
 import androidx.paging.cachedIn
 import com.dorcaapps.android.ktorclient.model.Repository
+import com.dorcaapps.android.ktorclient.utils.LiveEvent
 import io.ktor.http.*
-import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
 class PagingViewModel @ViewModelInject constructor(
     repository: Repository
 ) : ViewModel() {
-    private val navigationChannel = ConflatedBroadcastChannel<NavDirections>()
-    val navigation = navigationChannel.openSubscription()
+    val navigation = LiveEvent<NavDirections>()
+
     val adapter = PagingAdapter(repository) { navigate(it) }
     private val pagingFlow = repository.getPaging()
 
@@ -34,14 +34,13 @@ class PagingViewModel @ViewModelInject constructor(
 
     private fun navigate(mediaData: MediaData) {
         when (mediaData.contentType.contentType) {
-            ContentType.Video.Any.contentType -> navigationChannel.offer(
-                PagingFragmentDirections.actionPagingFragmentToDetailVideoFragment(
-                    mediaData.id
-                )
-            )
-            ContentType.Image.Any.contentType -> navigationChannel.offer(
-                PagingFragmentDirections.actionPagingFragmentToDetailFragment()
-            )
+            ContentType.Video.Any.contentType ->
+                navigation.value =
+                    PagingFragmentDirections.actionPagingFragmentToDetailVideoFragment(mediaData.id)
+
+            ContentType.Image.Any.contentType ->
+                navigation.value =
+                    PagingFragmentDirections.actionPagingFragmentToDetailFragment()
         }
     }
 }
