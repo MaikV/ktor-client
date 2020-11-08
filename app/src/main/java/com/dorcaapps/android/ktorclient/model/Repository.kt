@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.provider.OpenableColumns
 import androidx.core.net.toUri
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
@@ -24,9 +25,11 @@ import io.ktor.utils.io.core.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import java.io.File
 import javax.inject.Inject
+
 
 class Repository @Inject constructor(
     private val client: HttpClient,
@@ -72,6 +75,36 @@ class Repository @Inject constructor(
         ).flow
     }
 
+    suspend fun uploadFiles(fileUris: List<Uri>) {
+        withContext(Dispatchers.IO) {
+            for (fileUri in fileUris) {
+                val contentType = ContentType.parse(context.contentResolver.getType(fileUri)!!)
+                val fileName = getFileName(fileUri)
+
+                flow<Unit> {
+                    val myFormData = formData {
+                        append(
+                            "test",
+                            fileName,
+                            contentType
+                        ) {
+                            context.contentResolver.openInputStream(fileUri).use {
+                                writeFully(it!!.readBytes())
+                            }
+                        }
+                    }
+
+                    client.submitFormWithBinaryData<HttpResponse>(
+                        formData = myFormData,
+                        path = "media"
+                    ) {
+                        this.method = HttpMethod.Post
+                    }.throwOnError()
+                }.addRetryWithLogin().launchIn(MainScope()).join()
+            }
+        }
+    }
+
     suspend fun uploadFilesInCache() {
         val files = context.cacheDir.listFiles() ?: return
         val contentType = ContentType.Video.Any
@@ -108,6 +141,23 @@ class Repository @Inject constructor(
 
     private suspend fun loginAgain() {
         client.get<Unit>(path = "login")
+    }
+
+    private fun getFileName(uri: Uri): String {
+        var result: String? = null
+        if (uri.scheme == "content") {
+            context.contentResolver.query(
+                uri, null, null, null, null
+            )?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    result = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME))
+                }
+            }
+        }
+        if (result == null) {
+            result = uri.path
+        }
+        return result!!
     }
 
     private suspend fun getMediaPage(page: Int, pageSize: Int) = flow<List<MediaData>> {
