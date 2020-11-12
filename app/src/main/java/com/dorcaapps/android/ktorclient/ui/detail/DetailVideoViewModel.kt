@@ -12,21 +12,37 @@ import kotlinx.coroutines.flow.*
 class DetailVideoViewModel @ViewModelInject constructor(
     private val repository: Repository
 ) : ViewModel() {
-    private val resource = MutableStateFlow<Resource<Uri>?>(null)
+    private val uri = MutableStateFlow<Resource<Uri>?>(null)
+    private val deletion = MutableStateFlow<Resource<Unit>?>(null)
+    private var videoId: Int? = null
 
-    val videoUri = resource
-        .filterIsInstance<Resource.Success<Uri>>()
-        .map { it.data }
-        .asLiveData(context = viewModelScope.coroutineContext)
+    val videoUri =
+        uri
+            .filterIsInstance<Resource.Success<Uri>>()
+            .map { it.data }
+            .asLiveData(context = viewModelScope.coroutineContext)
 
-    val isLoading =
-        resource
+    val isDownloading =
+        uri
+            .map { it is Resource.Loading }
+            .asLiveData(viewModelScope.coroutineContext)
+
+    val isDeleting =
+        deletion
             .map { it is Resource.Loading }
             .asLiveData(viewModelScope.coroutineContext)
 
     fun setVideoId(id: Int) {
+        videoId = id
         repository.getMediaFileUri(id)
-            .onEach { resource.value = it }
+            .onEach { uri.value = it }
+            .launchIn(viewModelScope)
+    }
+
+    fun delete() {
+        val videoId = videoId ?: return
+        repository.delete(videoId)
+            .onEach { deletion.value = it }
             .launchIn(viewModelScope)
     }
 }

@@ -40,13 +40,17 @@ class PagingFragment : Fragment() {
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         super.onCreateOptionsMenu(menu, inflater)
-        inflater.inflate(R.menu.paging, menu)
+        inflater.inflate(R.menu.menu_paging, menu)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.menu_item_upload -> {
                 openFileChooser()
+                true
+            }
+            R.id.menu_item_refresh -> {
+                viewModel.adapter.refresh()
                 true
             }
             else -> super.onOptionsItemSelected(item)

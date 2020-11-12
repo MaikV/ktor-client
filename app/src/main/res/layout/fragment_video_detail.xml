@@ -27,7 +27,7 @@
             app:layout_constraintStart_toStartOf="@id/video_view"
             app:layout_constraintEnd_toEndOf="@id/video_view"
             app:layout_constraintBottom_toBottomOf="@id/video_view"
-            isVisible="@{viewModel.isLoading()}"
+            isVisible="@{viewModel.isDownloading()}"
             />
 
     </androidx.constraintlayout.widget.ConstraintLayout>

@@ -75,33 +75,31 @@ class Repository @Inject constructor(
         ).flow
     }
 
-    suspend fun uploadFiles(fileUris: List<Uri>) {
-        withContext(Dispatchers.IO) {
-            for (fileUri in fileUris) {
-                val contentType = ContentType.parse(context.contentResolver.getType(fileUri)!!)
-                val fileName = getFileName(fileUri)
+    suspend fun uploadFiles(fileUris: List<Uri>) = withContext(Dispatchers.IO) {
+        for (fileUri in fileUris) {
+            val contentType = ContentType.parse(context.contentResolver.getType(fileUri)!!)
+            val fileName = getFileName(fileUri)
 
-                flow<Unit> {
-                    val myFormData = formData {
-                        append(
-                            "test",
-                            fileName,
-                            contentType
-                        ) {
-                            context.contentResolver.openInputStream(fileUri).use {
-                                writeFully(it!!.readBytes())
-                            }
+            flow<Unit> {
+                val myFormData = formData {
+                    append(
+                        "test",
+                        fileName,
+                        contentType
+                    ) {
+                        context.contentResolver.openInputStream(fileUri)?.use {
+                            writeFully(it.readBytes())
                         }
                     }
+                }
 
-                    client.submitFormWithBinaryData<HttpResponse>(
-                        formData = myFormData,
-                        path = "media"
-                    ) {
-                        this.method = HttpMethod.Post
-                    }.throwOnError()
-                }.addRetryWithLogin().launchIn(MainScope()).join()
-            }
+                client.submitFormWithBinaryData<HttpResponse>(
+                    formData = myFormData,
+                    path = "media"
+                ) {
+                    this.method = HttpMethod.Post
+                }.throwOnError()
+            }.addRetryWithLogin().launchIn(MainScope()).join()
         }
     }
 
@@ -129,6 +127,10 @@ class Repository @Inject constructor(
             }.addRetryWithLogin().launchIn(MainScope()).join()
         }
     }
+
+    fun delete(mediaId: Int): Flow<Resource<Unit>> = flow<Resource<Unit>> {
+        emit(Resource.Success(client.delete(path = "media/$mediaId")))
+    }.addResourceHandling().addRetryWithLogin()
 
     fun loginWithNewCredentials(username: String, password: String): Flow<Resource<Unit>> {
         authManager.username = username
