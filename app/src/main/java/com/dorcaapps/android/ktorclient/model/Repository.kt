@@ -30,12 +30,22 @@ import kotlinx.coroutines.yield
 import java.io.File
 import javax.inject.Inject
 
-
 class Repository @Inject constructor(
     private val client: HttpClient,
     private val authManager: AuthManager,
     @ApplicationContext private val context: Context
 ) {
+    private val loginCompletedFlow = MutableSharedFlow<Unit>()
+    private val loginStartFlow = IgnoreEmitDuringCollectFlow<Unit>()
+
+    init {
+        loginStartFlow
+            .onEach {
+                client.get<Unit>(path = "login")
+                loginCompletedFlow.emit(Unit)
+            }
+            .launchIn(MainScope())
+    }
 
     fun getMediaFileUri(id: Int): Flow<Resource<Uri>> = flow<Resource<Uri>> {
         val response = client.get<HttpResponse>(path = "media/$id").throwOnError()
@@ -55,7 +65,6 @@ class Repository @Inject constructor(
         yield()
         emit(Resource.Success(bitmap))
     }.addRetryWithLogin().addResourceHandling()
-
 
     fun getPaging(): Flow<PagingData<MediaData>> {
         val pageSize = 6
@@ -142,7 +151,8 @@ class Repository @Inject constructor(
     }
 
     private suspend fun loginAgain() {
-        client.get<Unit>(path = "login")
+        loginStartFlow.tryEmit(Unit)
+        loginCompletedFlow.first()
     }
 
     private fun getFileName(uri: Uri): String {
