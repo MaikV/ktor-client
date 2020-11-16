@@ -5,10 +5,10 @@ import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
-import androidx.fragment.app.Fragment
 import com.dorcaapps.android.ktorclient.R
+import com.dorcaapps.android.ktorclient.ui.base.BaseFragment
 
-abstract class DetailBaseFragment: Fragment() {
+abstract class DetailBaseFragment: BaseFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setHasOptionsMenu(true)

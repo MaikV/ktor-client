@@ -5,14 +5,14 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.fragment.app.Fragment
+import androidx.appcompat.widget.Toolbar
 import androidx.fragment.app.viewModels
-import androidx.navigation.fragment.findNavController
 import com.dorcaapps.android.ktorclient.databinding.FragmentLoginBinding
+import com.dorcaapps.android.ktorclient.ui.base.BaseFragment
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
-class LoginFragment : Fragment() {
+class LoginFragment : BaseFragment() {
     private val viewModel: LoginViewModel by viewModels()
     private lateinit var binding: FragmentLoginBinding
 
@@ -29,9 +29,11 @@ class LoginFragment : Fragment() {
         return binding.root
     }
 
+    override fun getToolbar(): Toolbar = binding.toolbar
+
     private fun navigateToPaging(loggedIn: Boolean) {
         if (!loggedIn) return
-        findNavController().navigate(LoginFragmentDirections.actionLoginFragmentToPagingFragment())
+        navigate(LoginFragmentDirections.actionLoginFragmentToPagingFragment())
     }
 
     private fun onThrowable(throwable: Throwable) {

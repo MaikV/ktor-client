@@ -6,6 +6,7 @@ import android.os.Build
 import android.os.Bundle
 import android.view.*
 import android.widget.MediaController
+import androidx.appcompat.widget.Toolbar
 import androidx.core.net.toFile
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.navArgs
@@ -85,6 +86,8 @@ class DetailVideoFragment : DetailBaseFragment() {
         this.setDeleteActionView = setDeleteActionView
         viewModel.delete()
     }
+
+    override fun getToolbar(): Toolbar = binding.toolbar
 
     private fun setDeleteActionView(isDeleting: Boolean) {
         val setDeleteActionView = setDeleteActionView ?: return

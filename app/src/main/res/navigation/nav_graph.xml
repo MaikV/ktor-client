@@ -8,9 +8,7 @@
     <fragment
         android:id="@+id/pagingFragment"
         android:name="com.dorcaapps.android.ktorclient.ui.paging.PagingFragment"
-        android:label="PagingFragment"
-        tools:layout="@layout/fragment_paging"
-        >
+        tools:layout="@layout/fragment_paging">
         <action
             android:id="@+id/action_pagingFragment_to_detailFragment"
             app:destination="@id/detailImageFragment" />
@@ -21,12 +19,10 @@
     </fragment>
     <fragment
         android:id="@+id/detailImageFragment"
-        android:name="com.dorcaapps.android.ktorclient.ui.detail.DetailImageFragment"
-        android:label="DetailImageFragment" />
+        android:name="com.dorcaapps.android.ktorclient.ui.detail.DetailImageFragment" />
     <fragment
         android:id="@+id/detailVideoFragment"
         android:name="com.dorcaapps.android.ktorclient.ui.detail.DetailVideoFragment"
-        android:label="DetailVideoFragment"
         tools:layout="@layout/fragment_video_detail">
         <argument
             android:name="mediaId"
@@ -35,8 +31,7 @@
     </fragment>
     <fragment
         android:id="@+id/loginFragment"
-        android:name="com.dorcaapps.android.ktorclient.ui.login.LoginFragment"
-        android:label="LoginFragment" >
+        android:name="com.dorcaapps.android.ktorclient.ui.login.LoginFragment" >
         <action
             android:id="@+id/action_loginFragment_to_pagingFragment"
             app:destination="@id/pagingFragment"

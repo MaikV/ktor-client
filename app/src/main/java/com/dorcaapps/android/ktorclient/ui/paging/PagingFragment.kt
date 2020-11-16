@@ -3,17 +3,17 @@ package com.dorcaapps.android.ktorclient.ui.paging
 import android.content.Intent
 import android.os.Bundle
 import android.view.*
-import androidx.fragment.app.Fragment
+import androidx.appcompat.widget.Toolbar
 import androidx.fragment.app.viewModels
-import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
 import com.dorcaapps.android.ktorclient.R
 import com.dorcaapps.android.ktorclient.databinding.FragmentPagingBinding
+import com.dorcaapps.android.ktorclient.ui.base.BaseFragment
 import dagger.hilt.android.AndroidEntryPoint
 import io.ktor.http.*
 
 @AndroidEntryPoint
-class PagingFragment : Fragment() {
+class PagingFragment : BaseFragment() {
     companion object {
         private const val UPLOAD_REQUEST_CODE = 42
     }
@@ -57,6 +57,8 @@ class PagingFragment : Fragment() {
         }
     }
 
+    override fun getToolbar(): Toolbar = binding.toolbar
+
     private fun openFileChooser() {
         val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
             type = "*/*"
@@ -81,6 +83,6 @@ class PagingFragment : Fragment() {
     }
 
     private fun observeNavigation() {
-        viewModel.navigation.observe(viewLifecycleOwner, findNavController()::navigate)
+        viewModel.navigation.observe(viewLifecycleOwner, ::navigate)
     }
 }
