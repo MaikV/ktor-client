@@ -1,6 +1,7 @@
 package com.dorcaapps.android.ktorclient.ui.paging
 
 import androidx.paging.PagingSource
+import androidx.paging.PagingState
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.single
 
@@ -18,9 +19,12 @@ class MediaPagingSource(
                 prevKey = if (key > 1) key - 1 else null,
                 nextKey = if (data.size == loadSize) key + 1 else null
             )
-        } catch (e: Exception) {
-            LoadResult.Error(e)
+        } catch (expected: Exception) {
+            LoadResult.Error(expected)
         }
-
     }
+
+    // Fraglich, ob das das richtige macht
+    override fun getRefreshKey(state: PagingState<Int, MediaData>): Int? =
+        state.anchorPosition?.let { state.pages[it].prevKey }
 }

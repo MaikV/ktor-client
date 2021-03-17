@@ -13,18 +13,35 @@ import com.dorcaapps.android.ktorclient.extensions.throwOnError
 import com.dorcaapps.android.ktorclient.ui.paging.MediaData
 import com.dorcaapps.android.ktorclient.ui.paging.MediaPagingSource
 import dagger.hilt.android.qualifiers.ApplicationContext
-import io.ktor.client.*
-import io.ktor.client.features.*
-import io.ktor.client.request.*
-import io.ktor.client.request.forms.*
-import io.ktor.client.statement.*
-import io.ktor.http.*
-import io.ktor.util.cio.*
-import io.ktor.utils.io.*
-import io.ktor.utils.io.core.*
+import io.ktor.client.HttpClient
+import io.ktor.client.features.ClientRequestException
+import io.ktor.client.request.delete
+import io.ktor.client.request.forms.append
+import io.ktor.client.request.forms.formData
+import io.ktor.client.request.forms.submitFormWithBinaryData
+import io.ktor.client.request.get
+import io.ktor.client.request.parameter
+import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.readBytes
+import io.ktor.http.ContentType
+import io.ktor.http.HttpMethod
+import io.ktor.http.HttpStatusCode
+import io.ktor.util.cio.writeChannel
+import io.ktor.utils.io.copyAndClose
+import io.ktor.utils.io.core.use
+import io.ktor.utils.io.core.writeFully
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.retry
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import java.io.File
@@ -73,7 +90,7 @@ class Repository @Inject constructor(
                 pageSize = pageSize,
                 enablePlaceholders = false,
                 prefetchDistance = 9,
-                initialLoadSize = 12
+                initialLoadSize = pageSize
             ),
             initialKey = 1,
             pagingSourceFactory = {

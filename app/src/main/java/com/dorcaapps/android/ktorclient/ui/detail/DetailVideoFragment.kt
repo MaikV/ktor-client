@@ -4,7 +4,11 @@ import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.view.*
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.view.WindowInsets
+import android.view.WindowManager
 import android.widget.MediaController
 import androidx.appcompat.widget.Toolbar
 import androidx.core.net.toFile
@@ -26,7 +30,7 @@ class DetailVideoFragment : DetailBaseFragment() {
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         binding = FragmentVideoDetailBinding.inflate(inflater, container, false)
         binding.lifecycleOwner = viewLifecycleOwner
         binding.viewModel = viewModel
@@ -80,7 +84,6 @@ class DetailVideoFragment : DetailBaseFragment() {
         super.onStop()
         binding.videoView.stopPlayback()
     }
-
 
     override fun onDeleteClicked(setDeleteActionView: (layoutId: Int?) -> Unit) {
         this.setDeleteActionView = setDeleteActionView

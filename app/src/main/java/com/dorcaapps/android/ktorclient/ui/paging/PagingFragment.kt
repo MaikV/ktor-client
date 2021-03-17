@@ -2,7 +2,13 @@ package com.dorcaapps.android.ktorclient.ui.paging
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.*
+import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuInflater
+import android.view.MenuItem
+import android.view.View
+import android.view.ViewGroup
+import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.GridLayoutManager
@@ -10,13 +16,14 @@ import com.dorcaapps.android.ktorclient.R
 import com.dorcaapps.android.ktorclient.databinding.FragmentPagingBinding
 import com.dorcaapps.android.ktorclient.ui.base.BaseFragment
 import dagger.hilt.android.AndroidEntryPoint
-import io.ktor.http.*
+import io.ktor.http.ContentType
 
 @AndroidEntryPoint
 class PagingFragment : BaseFragment() {
     companion object {
         private const val UPLOAD_REQUEST_CODE = 42
     }
+
     private lateinit var binding: FragmentPagingBinding
     private val viewModel by viewModels<PagingViewModel>()
 
@@ -24,7 +31,7 @@ class PagingFragment : BaseFragment() {
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         binding = FragmentPagingBinding.inflate(inflater, container, false)
         binding.viewModel = viewModel
         binding.lifecycleOwner = viewLifecycleOwner
@@ -34,6 +41,7 @@ class PagingFragment : BaseFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        (activity as AppCompatActivity).setSupportActionBar(binding.toolbar)
         setHasOptionsMenu(true)
         observeNavigation()
     }
