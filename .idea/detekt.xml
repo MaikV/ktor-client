@@ -3,5 +3,7 @@
   <component name="DetektProjectConfiguration">
     <enableDetekt>true</enableDetekt>
     <enableFormatting>true</enableFormatting>
+    <buildUponDefaultConfig>true</buildUponDefaultConfig>
+    <rulesPath>C:\Users\MaikV\AndroidStudioProjects\KtorClient\config\detekt\detekt.yml</rulesPath>
   </component>
 </project>

@@ -1,10 +1,10 @@
 apply plugin: "com.android.application"
 apply plugin: "kotlin-android"
-apply plugin: "kotlin-android-extensions"
 apply plugin: "kotlin-kapt"
 apply plugin: "dagger.hilt.android.plugin"
 apply plugin: 'kotlinx-serialization'
 apply plugin: "androidx.navigation.safeargs.kotlin"
+apply plugin: "io.gitlab.arturbosch.detekt"
 
 android {
     compileSdkVersion 30
