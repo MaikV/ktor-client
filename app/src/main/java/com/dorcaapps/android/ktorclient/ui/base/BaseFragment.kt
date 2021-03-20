@@ -1,7 +1,6 @@
 package com.dorcaapps.android.ktorclient.ui.base
 
-import android.os.Bundle
-import android.view.View
+import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.fragment.app.Fragment
 import androidx.navigation.NavDirections
@@ -12,9 +11,9 @@ import androidx.navigation.ui.setupWithNavController
 import com.dorcaapps.android.ktorclient.R
 
 abstract class BaseFragment : Fragment() {
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
 
+    override fun onResume() {
+        super.onResume()
         setupToolbar()
     }
 
@@ -37,6 +36,7 @@ abstract class BaseFragment : Fragment() {
         val appBarConfiguration =
             AppBarConfiguration(setOf(R.id.loginFragment, R.id.pagingFragment))
         getToolbar().setupWithNavController(findNavController(), appBarConfiguration)
+        (activity as AppCompatActivity).setSupportActionBar(getToolbar())
     }
 
     abstract fun getToolbar(): Toolbar

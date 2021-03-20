@@ -8,7 +8,7 @@ import android.view.View
 import com.dorcaapps.android.ktorclient.R
 import com.dorcaapps.android.ktorclient.ui.base.BaseFragment
 
-abstract class DetailBaseFragment: BaseFragment() {
+abstract class DetailBaseFragment : BaseFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setHasOptionsMenu(true)

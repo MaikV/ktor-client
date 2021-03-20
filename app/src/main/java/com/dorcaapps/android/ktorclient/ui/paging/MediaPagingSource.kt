@@ -25,6 +25,5 @@ class MediaPagingSource(
     }
 
     // Fraglich, ob das das richtige macht
-    override fun getRefreshKey(state: PagingState<Int, MediaData>): Int? =
-        state.anchorPosition?.let { state.pages[it].prevKey }
+    override fun getRefreshKey(state: PagingState<Int, MediaData>): Int? = null
 }

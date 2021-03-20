@@ -1,15 +1,21 @@
 package com.dorcaapps.android.ktorclient.ui.login
 
-import androidx.hilt.lifecycle.ViewModelInject
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import com.dorcaapps.android.ktorclient.model.Repository
 import com.dorcaapps.android.ktorclient.model.Resource
-import kotlinx.coroutines.flow.*
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
+import javax.inject.Inject
 
-class LoginViewModel @ViewModelInject constructor(private val repository: Repository) :
+@HiltViewModel
+class LoginViewModel @Inject constructor(private val repository: Repository) :
     ViewModel() {
     val username = MutableLiveData("")
     val password = MutableLiveData("")

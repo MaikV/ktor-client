@@ -3,27 +3,27 @@ package com.dorcaapps.android.ktorclient.ui.paging
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
-import androidx.hilt.lifecycle.ViewModelInject
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.asFlow
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavDirections
 import androidx.paging.cachedIn
 import com.dorcaapps.android.ktorclient.model.Repository
 import com.dorcaapps.android.ktorclient.utils.LiveEvent
-import io.ktor.http.*
+import dagger.hilt.android.lifecycle.HiltViewModel
+import io.ktor.http.ContentType
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class PagingViewModel @ViewModelInject constructor(
-    repository: Repository
+@HiltViewModel
+class PagingViewModel @Inject constructor(
+    private val repository: Repository
 ) : ViewModel() {
     val navigation = LiveEvent<NavDirections>()
 
     val adapter = PagingAdapter(repository) { navigate(it) }
     private val pagingFlow = repository.getPaging()
-
-    private val filesToUpload = LiveEvent<List<Uri>>()
 
     init {
         pagingFlow
@@ -35,9 +35,6 @@ class PagingViewModel @ViewModelInject constructor(
                 Log.e("MTest", it.refresh.toString())
                 Log.e("MTest", it.append.toString())
             }.launchIn(viewModelScope)
-        filesToUpload.asFlow()
-            .onEach { repository.uploadFiles(it) }
-            .launchIn(viewModelScope)
     }
 
     @OptIn(ExperimentalStdlibApi::class)
@@ -49,7 +46,9 @@ class PagingViewModel @ViewModelInject constructor(
                 }
             }
         } ?: return
-        filesToUpload.value = fileUris
+        viewModelScope.launch {
+            repository.uploadFiles(fileUris)
+        }
     }
 
     private fun Uri.inList() = listOf(this)

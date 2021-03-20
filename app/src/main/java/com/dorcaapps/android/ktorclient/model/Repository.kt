@@ -30,18 +30,22 @@ import io.ktor.util.cio.writeChannel
 import io.ktor.utils.io.copyAndClose
 import io.ktor.utils.io.core.use
 import io.ktor.utils.io.core.writeFully
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.retry
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import java.io.File
@@ -52,17 +56,17 @@ class Repository @Inject constructor(
     private val authManager: AuthManager,
     @ApplicationContext private val context: Context
 ) {
-    private val loginCompletedFlow = MutableSharedFlow<Unit>()
-    private val loginStartFlow = IgnoreEmitDuringCollectFlow<Unit>()
 
-    init {
-        loginStartFlow
-            .onEach {
-                client.get<Unit>(path = "login")
-                loginCompletedFlow.emit(Unit)
-            }
-            .launchIn(MainScope())
-    }
+    private var isLoggingIn = false
+
+    private val loginTrigger = MutableSharedFlow<Unit>(
+        extraBufferCapacity = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+
+    private val loginCompleted = loginTrigger.map {
+        client.get<Unit>(path = "login")
+    }.shareIn(CoroutineScope(client.coroutineContext), SharingStarted.Eagerly)
 
     fun getMediaFileUri(id: Int): Flow<Resource<Uri>> = flow<Resource<Uri>> {
         val response = client.get<HttpResponse>(path = "media/$id").throwOnError()
@@ -167,11 +171,6 @@ class Repository @Inject constructor(
         }.addResourceHandling()
     }
 
-    private suspend fun loginAgain() {
-        loginStartFlow.tryEmit(Unit)
-        loginCompletedFlow.first()
-    }
-
     private fun getFileName(uri: Uri): String {
         var result: String? = null
         if (uri.scheme == "content") {
@@ -197,6 +196,15 @@ class Repository @Inject constructor(
         })
     }.addRetryWithLogin()
 
+    private suspend fun startAndWaitForLogin() {
+        synchronized(this) {
+            if (isLoggingIn) return@synchronized
+            isLoggingIn = true
+            loginTrigger.tryEmit(Unit)
+        }
+        loginCompleted.first()
+    }
+
     private fun <T> Flow<Resource<T>>.addResourceHandling() =
         onStart {
             emit(Resource.Loading)
@@ -208,7 +216,7 @@ class Repository @Inject constructor(
         retry(1) {
             val shouldRetry =
                 (it as? ClientRequestException)?.response?.status == HttpStatusCode.Unauthorized
-            if (shouldRetry) loginAgain()
+            if (shouldRetry) startAndWaitForLogin()
             shouldRetry
         }
 }
