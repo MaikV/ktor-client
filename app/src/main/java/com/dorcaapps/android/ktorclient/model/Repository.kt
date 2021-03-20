@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.provider.OpenableColumns
+import android.util.Log
 import androidx.core.net.toUri
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
@@ -22,12 +23,12 @@ import io.ktor.client.request.forms.submitFormWithBinaryData
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.HttpStatement
 import io.ktor.client.statement.readBytes
 import io.ktor.http.ContentType
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
-import io.ktor.util.cio.writeChannel
-import io.ktor.utils.io.copyAndClose
+import io.ktor.http.contentLength
 import io.ktor.utils.io.core.use
 import io.ktor.utils.io.core.writeFully
 import kotlinx.coroutines.CoroutineScope
@@ -50,6 +51,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import java.io.File
 import javax.inject.Inject
+import kotlin.time.ExperimentalTime
 
 class Repository @Inject constructor(
     private val client: HttpClient,
@@ -68,13 +70,26 @@ class Repository @Inject constructor(
         client.get<Unit>(path = "login")
     }.shareIn(CoroutineScope(client.coroutineContext), SharingStarted.Eagerly)
 
-    fun getMediaFileUri(id: Int): Flow<Resource<Uri>> = flow<Resource<Uri>> {
-        val response = client.get<HttpResponse>(path = "media/$id").throwOnError()
-        yield()
+    @OptIn(ExperimentalTime::class)
+    fun getMediaFileUri(id: Int): Flow<Resource<Uri>> = flow {
         val responseFile = File.createTempFile("prefix$id", null)
-        val writeChannel = responseFile.writeChannel()
-        response.content.copyAndClose(writeChannel)
-        yield()
+        client.get<HttpStatement>(path = "media/$id").execute { httpResponse ->
+            httpResponse.throwOnError()
+
+            val channel = httpResponse.content
+            val contentLength = httpResponse.contentLength()?.toInt()
+            requireNotNull(contentLength) { "Header needs to be set by server" }
+            var total = 0
+            var readBytes: Int
+            val buffer = ByteArray(contentLength)
+            do {
+                readBytes = channel.readAvailable(buffer, total, 4096)
+                total += readBytes
+                emit(Resource.Loading((total.toDouble() / contentLength.toDouble() * 100.0).toInt()))
+                yield()
+            } while (readBytes > 0)
+            responseFile.writeBytes(buffer)
+        }
         emit(Resource.Success(responseFile.toUri()))
     }.addRetryWithLogin().addResourceHandling()
 
@@ -207,8 +222,9 @@ class Repository @Inject constructor(
 
     private fun <T> Flow<Resource<T>>.addResourceHandling() =
         onStart {
-            emit(Resource.Loading)
+            emit(Resource.Loading(0))
         }.catch {
+            Log.e("MTest", "catch ${it.message}")
             emit(Resource.Error(it))
         }.flowOn(Dispatchers.IO)
 

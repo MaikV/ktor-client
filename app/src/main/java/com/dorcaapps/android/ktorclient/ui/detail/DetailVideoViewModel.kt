@@ -33,6 +33,10 @@ class DetailVideoViewModel @Inject constructor(
             .map { it is Resource.Loading }
             .asLiveData(viewModelScope.coroutineContext)
 
+    val downloadProgressPercent = uri.filterIsInstance<Resource.Loading>().map {
+        it.progressPercent
+    }.asLiveData(viewModelScope.coroutineContext)
+
     val isDeleting =
         deletion
             .map { it is Resource.Loading }

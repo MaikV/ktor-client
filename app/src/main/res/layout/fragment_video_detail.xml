@@ -3,6 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <data>
+
         <variable
             name="viewModel"
             type="com.dorcaapps.android.ktorclient.ui.detail.DetailVideoViewModel" />
@@ -13,30 +14,32 @@
         android:layout_height="match_parent">
 
         <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:id="@+id/toolbar"
-            app:title="VideoDetailFragment"
             app:layout_constraintTop_toTopOf="parent"
-            />
+            app:title="VideoDetailFragment" />
 
         <VideoView
             android:id="@+id/video_view"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:layout_constraintTop_toBottomOf="@+id/toolbar"
             app:layout_constraintBottom_toBottomOf="parent"
-            />
+            app:layout_constraintTop_toBottomOf="@+id/toolbar" />
 
-        <ProgressBar
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:layout_constraintTop_toTopOf="@id/video_view"
-            app:layout_constraintStart_toStartOf="@id/video_view"
-            app:layout_constraintEnd_toEndOf="@id/video_view"
-            app:layout_constraintBottom_toBottomOf="@id/video_view"
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+            android:id="@+id/progress_indicator"
             isVisible="@{viewModel.isDownloading()}"
-            />
+            android:background="@color/cardview_light_background"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_margin="64dp"
+            android:progress="@{viewModel.downloadProgressPercent}"
+            android:max="100"
+            app:layout_constraintBottom_toBottomOf="@id/video_view"
+            app:layout_constraintEnd_toEndOf="@id/video_view"
+            app:layout_constraintStart_toStartOf="@id/video_view"
+            app:layout_constraintTop_toTopOf="@id/video_view" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>
