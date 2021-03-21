@@ -61,7 +61,7 @@ class PagingViewModel @Inject constructor(
 
             ContentType.Image.Any.contentType ->
                 navigation.value =
-                    PagingFragmentDirections.actionPagingFragmentToDetailFragment()
+                    PagingFragmentDirections.actionPagingFragmentToDetailFragment(mediaData.id)
         }
     }
 }

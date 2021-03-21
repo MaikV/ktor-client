@@ -19,7 +19,12 @@
     </fragment>
     <fragment
         android:id="@+id/detailImageFragment"
-        android:name="com.dorcaapps.android.ktorclient.ui.detail.DetailImageFragment" />
+        android:name="com.dorcaapps.android.ktorclient.ui.detail.DetailImageFragment" >
+        <argument
+            android:name="mediaId"
+            app:argType="integer"
+            android:defaultValue="-1" />
+    </fragment>
     <fragment
         android:id="@+id/detailVideoFragment"
         android:name="com.dorcaapps.android.ktorclient.ui.detail.DetailVideoFragment"
