@@ -3,7 +3,10 @@ package com.dorcaapps.android.ktorclient.ui.paging
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
+import android.view.View
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.map
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavDirections
 import androidx.paging.cachedIn
@@ -21,6 +24,8 @@ class PagingViewModel @Inject constructor(
     private val repository: Repository
 ) : ViewModel() {
     val navigation = LiveEvent<NavDirections>()
+    private val _isUploading = MutableLiveData(false)
+    val isUploading = _isUploading.map { if (it) View.VISIBLE else View.GONE }
 
     val adapter = PagingAdapter(repository) { navigate(it) }
     private val pagingFlow = repository.getPaging()
@@ -47,7 +52,10 @@ class PagingViewModel @Inject constructor(
             }
         } ?: return
         viewModelScope.launch {
+            _isUploading.value = true
             repository.uploadFiles(fileUris)
+        }.invokeOnCompletion {
+            _isUploading.value = false
         }
     }
 
