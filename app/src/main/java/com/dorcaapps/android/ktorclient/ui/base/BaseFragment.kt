@@ -26,7 +26,7 @@ abstract class BaseFragment : Fragment() {
             .setExitAnim(R.anim.slide_out)
             .setPopEnterAnim(R.anim.pop_slide_in)
             .setPopExitAnim(R.anim.pop_slide_out)
-            .setPopUpTo(oldNavOptions?.popUpTo ?: -1, oldNavOptions?.isPopUpToInclusive ?: false)
+            .setPopUpTo(oldNavOptions?.popUpToId ?: -1, oldNavOptions?.isPopUpToInclusive() ?: false)
             .build()
 
         findNavController().navigate(navDirections, navOptions)
