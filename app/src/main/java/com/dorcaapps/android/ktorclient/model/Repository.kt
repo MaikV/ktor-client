@@ -7,6 +7,7 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import android.util.Log
 import androidx.core.net.toUri
+import androidx.core.util.lruCache
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
@@ -51,13 +52,24 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import java.io.File
 import javax.inject.Inject
+import javax.inject.Singleton
 import kotlin.time.ExperimentalTime
 
+@Singleton
 class Repository @Inject constructor(
     private val client: HttpClient,
     private val authManager: AuthManager,
     @ApplicationContext private val context: Context
 ) {
+    private val mediaCache = lruCache<Int, File>(
+        maxSize = 20_000_000,
+        sizeOf = { _, file ->
+            file.length().toInt()
+        },
+        onEntryRemoved = { _, _, oldValue, _ ->
+            oldValue.delete()
+        }
+    )
 
     private var isLoggingIn = false
 
@@ -72,6 +84,10 @@ class Repository @Inject constructor(
 
     @OptIn(ExperimentalTime::class)
     fun getMediaFileUri(id: Int): Flow<Resource<Uri>> = flow {
+        mediaCache[id]?.let {
+            emit(Resource.Success(it.toUri()))
+            return@flow
+        }
         val responseFile = File.createTempFile("prefix$id", null)
         client.get<HttpStatement>(path = "media/$id").execute { httpResponse ->
             httpResponse.throwOnError()
@@ -90,6 +106,7 @@ class Repository @Inject constructor(
             } while (readBytes > 0)
             responseFile.writeBytes(buffer)
         }
+        mediaCache.put(id, responseFile)
         emit(Resource.Success(responseFile.toUri()))
     }.addRetryWithLogin().addResourceHandling()
 

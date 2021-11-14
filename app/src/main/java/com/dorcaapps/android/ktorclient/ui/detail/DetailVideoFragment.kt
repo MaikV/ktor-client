@@ -108,7 +108,6 @@ class DetailVideoFragment : DetailBaseFragment() {
     private fun playVideo(videoUri: Uri) {
         val videoView = binding.videoView
         videoView.setVideoURI(videoUri)
-        videoUri.toFile().delete()
 
         val mediaController = MediaController(requireContext())
         mediaController.setAnchorView(videoView)
