@@ -1,58 +1,59 @@
 package com.dorcaapps.android.ktorclient.ui.detail
 
 import android.net.Uri
+import androidx.annotation.OptIn
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
+import androidx.media3.common.MediaItem
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.ByteArrayDataSource
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.source.MediaSource
 import com.dorcaapps.android.ktorclient.model.Repository
 import com.dorcaapps.android.ktorclient.model.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 @HiltViewModel
 class DetailVideoViewModel @Inject constructor(
     private val repository: Repository
 ) : ViewModel() {
-    private val uri = MutableStateFlow<Resource<Uri>?>(null)
-    private val deletion = MutableStateFlow<Resource<Unit>?>(null)
-    private var videoId: Int? = null
+    private val videoId = MutableSharedFlow<Int?>()
 
-    val videoUri =
-        uri
-            .filterIsInstance<Resource.Success<Uri>>()
-            .map { it.data }
-            .asLiveData(context = viewModelScope.coroutineContext)
+    @OptIn(UnstableApi::class)
+    val mediaSource: StateFlow<Resource<MediaSource>> =
+        videoId.filterNotNull().flatMapLatest { videoId ->
+            repository.getMediaByteArray(videoId)
+                .map { byteArrayResource ->
+                    when (byteArrayResource) {
+                        is Resource.Error -> Resource.Error(
+                            byteArrayResource.throwable
+                        )
+                        is Resource.Loading -> Resource.Loading(
+                            byteArrayResource.progressPercent
+                        )
+                        is Resource.Success -> {
+                            Resource.Success(DefaultMediaSourceFactory {
+                                ByteArrayDataSource(byteArrayResource.data)
+                            }.createMediaSource(MediaItem.fromUri(Uri.EMPTY)))
+                        }
+                    }
 
-    val isDownloading =
-        uri
-            .map { it is Resource.Loading }
-            .asLiveData(viewModelScope.coroutineContext)
+                }
+        }
+            .flowOn(Dispatchers.Default)
+            .stateIn(viewModelScope, SharingStarted.Lazily, Resource.Loading(0))
 
-    val downloadProgressPercent = uri.filterIsInstance<Resource.Loading>().map {
-        it.progressPercent
-    }.asLiveData(viewModelScope.coroutineContext)
-
-    val isDeleting =
-        deletion
-            .map { it is Resource.Loading }
-            .asLiveData(viewModelScope.coroutineContext)
-
-    fun setVideoId(id: Int) {
-        videoId = id
-        repository.getMediaFileUri(id)
-            .onEach { uri.value = it }
-            .launchIn(viewModelScope)
-    }
-
-    fun delete() {
-        val videoId = videoId ?: return
-        repository.delete(videoId)
-            .onEach { deletion.value = it }
-            .launchIn(viewModelScope)
+    suspend fun setVideoId(id: Int) {
+        videoId.emit(id)
     }
 }

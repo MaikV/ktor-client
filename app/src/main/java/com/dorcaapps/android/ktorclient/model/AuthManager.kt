@@ -19,8 +19,12 @@ class AuthManager @Inject constructor() {
         auth.providers.clear()
         auth.apply {
             digest {
-                username = this@AuthManager.username
-                password = this@AuthManager.password
+                credentials {
+                    DigestAuthCredentials(
+                        this@AuthManager.username,
+                        this@AuthManager.password
+                    )
+                }
                 realm = "login"
             }
         }

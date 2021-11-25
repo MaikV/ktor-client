@@ -5,8 +5,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.provider.OpenableColumns
-import android.util.Log
-import androidx.core.net.toUri
 import androidx.core.util.lruCache
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
@@ -17,6 +15,7 @@ import com.dorcaapps.android.ktorclient.ui.paging.MediaPagingSource
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.ktor.client.HttpClient
 import io.ktor.client.features.ClientRequestException
+import io.ktor.client.features.onDownload
 import io.ktor.client.request.delete
 import io.ktor.client.request.forms.append
 import io.ktor.client.request.forms.formData
@@ -24,12 +23,10 @@ import io.ktor.client.request.forms.submitFormWithBinaryData
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.statement.HttpResponse
-import io.ktor.client.statement.HttpStatement
 import io.ktor.client.statement.readBytes
 import io.ktor.http.ContentType
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
-import io.ktor.http.contentLength
 import io.ktor.utils.io.core.use
 import io.ktor.utils.io.core.writeFully
 import kotlinx.coroutines.CoroutineScope
@@ -40,6 +37,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
@@ -50,10 +48,8 @@ import kotlinx.coroutines.flow.retry
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
-import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.time.ExperimentalTime
 
 @Singleton
 class Repository @Inject constructor(
@@ -61,13 +57,16 @@ class Repository @Inject constructor(
     private val authManager: AuthManager,
     @ApplicationContext private val context: Context
 ) {
-    private val mediaCache = lruCache<Int, File>(
+    private val mediaCacheNew = lruCache<Int, ByteArray>(
         maxSize = 20_000_000,
+        sizeOf = { _, byteArray ->
+            byteArray.size
+        }
+    )
+    private val thumbnailCache = lruCache<Int, Bitmap>(
+        maxSize = 1_000_000,
         sizeOf = { _, file ->
-            file.length().toInt()
-        },
-        onEntryRemoved = { _, _, oldValue, _ ->
-            oldValue.delete()
+            file.allocationByteCount
         }
     )
 
@@ -82,39 +81,30 @@ class Repository @Inject constructor(
         client.get<Unit>(path = "login")
     }.shareIn(CoroutineScope(client.coroutineContext), SharingStarted.Eagerly)
 
-    @OptIn(ExperimentalTime::class)
-    fun getMediaFileUri(id: Int): Flow<Resource<Uri>> = flow {
-        mediaCache[id]?.let {
-            emit(Resource.Success(it.toUri()))
-            return@flow
+    fun getMediaByteArray(id: Int): Flow<Resource<ByteArray>> = channelFlow<Resource<ByteArray>> {
+        mediaCacheNew[id]?.let {
+            send(Resource.Success(it))
+            return@channelFlow
         }
-        val responseFile = File.createTempFile("prefix$id", null)
-        client.get<HttpStatement>(path = "media/$id").execute { httpResponse ->
-            httpResponse.throwOnError()
-
-            val channel = httpResponse.content
-            val contentLength = httpResponse.contentLength()?.toInt()
-            requireNotNull(contentLength) { "Header needs to be set by server" }
-            var total = 0
-            var readBytes: Int
-            val buffer = ByteArray(contentLength)
-            do {
-                readBytes = channel.readAvailable(buffer, total, 4096)
-                total += readBytes
-                emit(Resource.Loading((total.toDouble() / contentLength.toDouble() * 100.0).toInt()))
-                yield()
-            } while (readBytes > 0)
-            responseFile.writeBytes(buffer)
+        val result = client.get<ByteArray>(path = "media/$id") {
+            onDownload { bytesSentTotal, contentLength ->
+                send(Resource.Loading((bytesSentTotal.toDouble() / contentLength.toDouble() * 100.0).toInt()))
+            }
         }
-        mediaCache.put(id, responseFile)
-        emit(Resource.Success(responseFile.toUri()))
+        mediaCacheNew.put(id, result)
+        send(Resource.Success(result))
     }.addRetryWithLogin().addResourceHandling()
 
-    fun getThumbnailFileUri(id: Int): Flow<Resource<Bitmap>> = flow<Resource<Bitmap>> {
+    fun getThumbnailBitmap(id: Int): Flow<Resource<Bitmap>> = flow<Resource<Bitmap>> {
+        thumbnailCache[id]?.let { thumbnail ->
+            emit(Resource.Success(thumbnail))
+            return@flow
+        }
         val response = client.get<HttpResponse>(path = "media/$id/thumbnail").throwOnError()
         yield()
         val bytes = response.readBytes()
         val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+        thumbnailCache.put(id, bitmap)
         yield()
         emit(Resource.Success(bitmap))
     }.addRetryWithLogin().addResourceHandling()
@@ -241,7 +231,6 @@ class Repository @Inject constructor(
         onStart {
             emit(Resource.Loading(0))
         }.catch {
-            Log.e("MTest", "catch ${it.message}")
             emit(Resource.Error(it))
         }.flowOn(Dispatchers.IO)
 
