@@ -16,17 +16,23 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import io.ktor.client.HttpClient
 import io.ktor.client.features.ClientRequestException
 import io.ktor.client.features.onDownload
+import io.ktor.client.features.onUpload
 import io.ktor.client.request.delete
 import io.ktor.client.request.forms.append
 import io.ktor.client.request.forms.formData
 import io.ktor.client.request.forms.submitFormWithBinaryData
 import io.ktor.client.request.get
+import io.ktor.client.request.header
 import io.ktor.client.request.parameter
+import io.ktor.client.request.post
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.readBytes
+import io.ktor.http.ContentDisposition
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.contentType
 import io.ktor.utils.io.core.use
 import io.ktor.utils.io.core.writeFully
 import kotlinx.coroutines.CoroutineScope
@@ -46,7 +52,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.retry
 import kotlinx.coroutines.flow.shareIn
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -127,33 +132,30 @@ class Repository @Inject constructor(
         ).flow
     }
 
-    suspend fun uploadFiles(fileUris: List<Uri>) = withContext(Dispatchers.IO) {
+    fun uploadFilesFlow(fileUris: List<Uri>) = channelFlow<Resource<ByteArray>> {
         for (fileUri in fileUris) {
             val contentType = ContentType.parse(context.contentResolver.getType(fileUri)!!)
             val fileName = getFileName(fileUri)
 
-            flow<Unit> {
-                val myFormData = formData {
-                    append(
-                        "test",
-                        fileName,
-                        contentType
-                    ) {
-                        context.contentResolver.openInputStream(fileUri)?.use {
-                            writeFully(it.readBytes())
-                        }
-                    }
+            val body = context.contentResolver.openInputStream(fileUri)?.use {
+                it.readBytes()
+            }!!
+            client.post<HttpResponse>(path = "media", body = body) {
+                onUpload { bytesSentTotal, contentLength ->
+                    send(Resource.Loading((bytesSentTotal.toDouble() / contentLength.toDouble() * 100.0).toInt()))
                 }
-
-                client.submitFormWithBinaryData<HttpResponse>(
-                    formData = myFormData,
-                    path = "media"
-                ) {
-                    this.method = HttpMethod.Post
-                }.throwOnError()
-            }.addRetryWithLogin().launchIn(MainScope()).join()
+                contentType(contentType)
+                header(
+                    HttpHeaders.ContentDisposition,
+                    ContentDisposition.File.withParameter(
+                        ContentDisposition.Parameters.FileName,
+                        fileName
+                    )
+                )
+            }.throwOnError()
         }
-    }
+    }.addRetryWithLogin()
+        .addResourceHandling()
 
     suspend fun uploadFilesInCache() {
         val files = context.cacheDir.listFiles() ?: return

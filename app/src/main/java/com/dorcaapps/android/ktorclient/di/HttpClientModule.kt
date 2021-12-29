@@ -26,7 +26,7 @@ object HttpClientModule {
     fun provideHttpClient(authManager: AuthManager) = HttpClient(OkHttp) {
         engine {
             val loggingInterceptor =
-                HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY }
+                HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }
             addInterceptor(loggingInterceptor)
             config {
                 retryOnConnectionFailure(true)
@@ -39,7 +39,7 @@ object HttpClientModule {
             url.protocol = URLProtocol.HTTP
             url.port = DEFAULT_REQUEST_PORT
 //            url.host = "192.168.178.21"
-            url.host = "192.168.178.29"
+            url.host = "192.168.0.65"
         }
         install(HttpCookies) {
             storage = AcceptAllCookiesStorage()

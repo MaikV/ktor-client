@@ -36,7 +36,7 @@ android {
         targetCompatibility JavaVersion.VERSION_1_8
 
         kotlinOptions {
-            freeCompilerArgs += "-opt-in=kotlin.RequiresOptIn,kotlinx.coroutines.ExperimentalCoroutinesApi"
+            freeCompilerArgs += "-Xopt-in=kotlin.RequiresOptIn,kotlinx.coroutines.ExperimentalCoroutinesApi"
         }
     }
 
@@ -107,6 +107,7 @@ dependencies {
     implementation "androidx.fragment:fragment-ktx:1.4.0"
 
     implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:2.4.0"
+    implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.4.0"
     implementation "androidx.lifecycle:lifecycle-extensions:2.2.0"
     // LiveData
     implementation "androidx.lifecycle:lifecycle-livedata-ktx:2.4.0"
@@ -136,5 +137,6 @@ dependencies {
     implementation "androidx.compose.material:material:$compose_version"
     implementation "androidx.compose.material3:material3:1.0.0-alpha01"
 
-
+    // Sentry
+    implementation "io.sentry:sentry-android:5.5.2"
 }
