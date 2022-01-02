@@ -18,8 +18,6 @@ fun ImageDetailDestination(id: Int) {
         delay(500)
         viewModel.setImageId(id)
     }
-//    AnimatedContent(targetState = videoByteArrayResource) { targetState ->
-    // TODO: Video continues playing in the background on orientation change..
     mediaSource.let {
         when (it) {
             is Resource.Error -> MediaLoadingError { viewModel.setImageId(id) }

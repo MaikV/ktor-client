@@ -133,6 +133,7 @@ class Repository @Inject constructor(
     }
 
     fun uploadFilesFlow(fileUris: List<Uri>) = channelFlow<Resource<ByteArray>> {
+        // TODO: Should probably retry on every uri, not just once. Same for ResourceHandling
         for (fileUri in fileUris) {
             val contentType = ContentType.parse(context.contentResolver.getType(fileUri)!!)
             val fileName = getFileName(fileUri)

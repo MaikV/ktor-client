@@ -42,6 +42,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import com.dorcaapps.android.ktorclient.model.Resource
 import com.dorcaapps.android.ktorclient.ui.destinations.Destinations
+import com.dorcaapps.android.ktorclient.ui.destinations.ImageDetailDestination
+import com.dorcaapps.android.ktorclient.ui.destinations.LoginDestination
+import com.dorcaapps.android.ktorclient.ui.destinations.PagedGridDestination
+import com.dorcaapps.android.ktorclient.ui.destinations.VideoDetailDestination
 import com.dorcaapps.android.ktorclient.ui.shared.extensions.composableDestination
 import com.dorcaapps.android.ktorclient.ui.theme.AppTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -86,6 +90,9 @@ class MainActivity : AppCompatActivity() {
                 var filesToUpload by remember {
                     mutableStateOf<List<Uri>>(emptyList())
                 }
+                var refreshTrigger by remember {
+                    mutableStateOf(false)
+                }
                 LaunchedEffect(key1 = filesToUpload) {
                     if (filesToUpload.isEmpty()) {
                         uploadResource = null
@@ -95,6 +102,7 @@ class MainActivity : AppCompatActivity() {
                         uploadResource = it
                     }
                     filesToUpload = emptyList()
+                    refreshTrigger = !refreshTrigger
                 }
                 val fileLauncher = rememberLauncherForActivityResult(
                     contract = fileRequestContract,
@@ -138,7 +146,9 @@ class MainActivity : AppCompatActivity() {
                                                         contentDescription = "Upload"
                                                     )
                                                 }
-                                                IconButton(onClick = { TODO() }) {
+                                                IconButton(onClick = {
+                                                    refreshTrigger = !refreshTrigger
+                                                }) {
                                                     Icon(
                                                         imageVector = Icons.Filled.Refresh,
                                                         contentDescription = "Refresh"
@@ -177,10 +187,40 @@ class MainActivity : AppCompatActivity() {
                             navController = navController,
                             startDestination = Destinations.Login.route
                         ) {
-                            composableDestination(Destinations.Login(navController))
-                            composableDestination(Destinations.PagedGrid(navController))
-                            composableDestination(Destinations.PagedGrid.ImageDetail)
-                            composableDestination(Destinations.PagedGrid.VideoDetail)
+                            composableDestination(Destinations.Login) {
+                                LoginDestination {
+                                    navController.navigate(Destinations.PagedGrid.route) {
+                                        popUpTo(Destinations.Login.route) { inclusive = true }
+                                    }
+                                }
+                            }
+                            composableDestination(Destinations.PagedGrid) {
+                                PagedGridDestination(
+                                    refreshTrigger = refreshTrigger,
+                                    onImageMediaClicked = {
+                                        navController.navigate(
+                                            route = Destinations.PagedGrid.ImageDetail.route.replace(
+                                                "{id}",
+                                                it.toString()
+                                            )
+                                        )
+                                    },
+                                    onVideoMediaClicked = {
+                                        navController.navigate(
+                                            route = Destinations.PagedGrid.VideoDetail.route.replace(
+                                                "{id}",
+                                                it.toString()
+                                            )
+                                        )
+                                    }
+                                )
+                            }
+                            composableDestination(Destinations.PagedGrid.ImageDetail) {
+                                ImageDetailDestination(it.arguments!!.getInt("id"))
+                            }
+                            composableDestination(Destinations.PagedGrid.VideoDetail) {
+                                VideoDetailDestination(it.arguments!!.getInt("id"))
+                            }
                         }
                     }
                 }

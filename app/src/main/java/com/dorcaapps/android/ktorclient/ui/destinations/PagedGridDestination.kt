@@ -35,11 +35,15 @@ import kotlinx.coroutines.yield
 @OptIn(ExperimentalFoundationApi::class, ExperimentalAnimationApi::class)
 @Composable
 fun PagedGridDestination(
+    refreshTrigger: Boolean,
     onImageMediaClicked: (id: Int) -> Unit,
     onVideoMediaClicked: (id: Int) -> Unit
 ) {
     val viewModel: PagingViewModel = hiltViewModel()
     val mediaData = viewModel.pagingFlow.collectAsLazyPagingItems()
+    LaunchedEffect(refreshTrigger) {
+        mediaData.refresh()
+    }
     LazyVerticalGrid(cells = GridCells.Fixed(3)) {
         items(mediaData) { item ->
             item ?: return@items
