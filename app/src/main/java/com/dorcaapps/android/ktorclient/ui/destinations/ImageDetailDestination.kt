@@ -20,7 +20,7 @@ fun ImageDetailDestination(id: Int) {
     }
     mediaSource.let {
         when (it) {
-            is Resource.Error -> MediaLoadingError { viewModel.setImageId(id) }
+            is Resource.Error -> MediaLoadingError(it.throwable) { viewModel.setImageId(id) }
             is Resource.Loading -> MediaLoadingComposable(it.progressPercent)
             is Resource.Success -> Image(bitmap = it.data, contentDescription = "Image")
         }

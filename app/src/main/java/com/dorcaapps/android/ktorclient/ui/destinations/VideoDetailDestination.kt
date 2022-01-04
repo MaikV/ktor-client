@@ -1,7 +1,9 @@
 package com.dorcaapps.android.ktorclient.ui.destinations
 
 import androidx.annotation.OptIn
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.Button
 import androidx.compose.material.LinearProgressIndicator
@@ -46,7 +48,7 @@ fun VideoDetailDestination(id: Int) {
     // TODO: Video continues playing in the background on orientation change..
     mediaSource.let {
         when (it) {
-            is Resource.Error -> MediaLoadingError { viewModel.setVideoId(id) }
+            is Resource.Error -> MediaLoadingError(it.throwable) { viewModel.setVideoId(id) }
             is Resource.Loading -> MediaLoadingComposable(it.progressPercent)
             is Resource.Success -> VideoComposable(it.data)
         }
@@ -56,13 +58,23 @@ fun VideoDetailDestination(id: Int) {
 
 @Composable
 fun MediaLoadingError(
+    throwable: Throwable,
     coroutineScope: CoroutineScope = rememberCoroutineScope(),
     onRetry: suspend CoroutineScope.() -> Unit
 ) {
-    Button(onClick = {
-        coroutineScope.launch(block = onRetry)
-    }) {
-        Text(text = "Retry")
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        throwable.message?.let {
+            Text(it)
+        }
+        Button(onClick = {
+            coroutineScope.launch(block = onRetry)
+        }) {
+            Text(text = "Retry")
+        }
     }
 }
 

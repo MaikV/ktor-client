@@ -1,5 +1,6 @@
 package com.dorcaapps.android.ktorclient.ui.destinations
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material.Button
 import androidx.compose.material.Text
@@ -12,6 +13,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.dorcaapps.android.ktorclient.model.Resource
 import com.dorcaapps.android.ktorclient.ui.login.LoginViewModel
@@ -41,12 +43,23 @@ fun LoginDestination(onLoginValid: () -> Unit) {
         }) {
             Text("Login")
         }
+        // TODO: Improve this
         val coroutineScope = rememberCoroutineScope()
         val loginState by viewModel.loginResource
             .collectAsState(context = coroutineScope.coroutineContext)
         LaunchedEffect(key1 = loginState) {
             if (loginState is Resource.Success) {
                 onLoginValid.invoke()
+            }
+        }
+        val context = LocalContext.current
+        LaunchedEffect(key1 = loginState) {
+            if (loginState is Resource.Error) {
+                Toast.makeText(
+                    context,
+                    (loginState as? Resource.Error)?.throwable?.message,
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         }
     }

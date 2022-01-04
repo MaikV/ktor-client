@@ -63,7 +63,7 @@ class Repository @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     private val mediaCacheNew = lruCache<Int, ByteArray>(
-        maxSize = 20_000_000,
+        maxSize = 60_000_000,
         sizeOf = { _, byteArray ->
             byteArray.size
         }
