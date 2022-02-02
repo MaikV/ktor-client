@@ -34,6 +34,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -51,6 +52,7 @@ import com.dorcaapps.android.ktorclient.ui.theme.AppTheme
 import dagger.hilt.android.AndroidEntryPoint
 import io.ktor.http.ContentType
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
@@ -93,6 +95,11 @@ class MainActivity : AppCompatActivity() {
                 var refreshTrigger by remember {
                     mutableStateOf(false)
                 }
+                LaunchedEffect(key1 = backStackEntry?.destination?.route) {
+                    if (backStackEntry?.destination?.route == Destinations.PagedGrid.route) {
+                        refreshTrigger = !refreshTrigger
+                    }
+                }
                 LaunchedEffect(key1 = filesToUpload) {
                     if (filesToUpload.isEmpty()) {
                         uploadResource = null
@@ -119,7 +126,6 @@ class MainActivity : AppCompatActivity() {
                             title = { Text(text = "Title") },
                             scrollBehavior = scrollBehavior,
                             navigationIcon = {
-
                                 val canNavigateUp =
                                     currentRoute != null &&
                                             currentRoute != Destinations.Login.route &&
@@ -157,18 +163,28 @@ class MainActivity : AppCompatActivity() {
                                             }
                                         }
                                         Destinations.PagedGrid.VideoDetail.route,
-                                        Destinations.PagedGrid.ImageDetail.route ->
+                                        Destinations.PagedGrid.ImageDetail.route -> {
+                                            val coroutineScope = rememberCoroutineScope()
                                             IconButton(
                                                 onClick = {
                                                     val id = backStackEntry?.arguments?.getInt("id")
-                                                    mainViewModel.delete(id ?: return@IconButton)
-                                                    // TODO: Navigate back on success
+                                                        ?: return@IconButton
+                                                    coroutineScope.launch {
+                                                        mainViewModel.delete(id)
+                                                        val route =
+                                                            backStackEntry?.destination?.route
+                                                                ?: return@launch
+                                                        if (route == Destinations.PagedGrid.VideoDetail.route || route == Destinations.PagedGrid.ImageDetail.route) {
+                                                            navController.popBackStack()
+                                                        }
+                                                    }
                                                 }) {
                                                 Icon(
                                                     imageVector = Icons.Filled.Delete,
                                                     contentDescription = "Delete"
                                                 )
                                             }
+                                        }
                                         else -> {}
                                     }
                                 }
