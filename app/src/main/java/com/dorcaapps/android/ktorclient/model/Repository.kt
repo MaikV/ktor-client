@@ -32,7 +32,6 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
-import io.ktor.http.contentType
 import io.ktor.utils.io.core.use
 import io.ktor.utils.io.core.writeFully
 import kotlinx.coroutines.CoroutineScope
@@ -44,6 +43,8 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
@@ -132,31 +133,40 @@ class Repository @Inject constructor(
         ).flow
     }
 
-    fun uploadFilesFlow(fileUris: List<Uri>) = channelFlow<Resource<ByteArray>> {
-        // TODO: Should probably retry on every uri, not just once. Same for ResourceHandling
+    fun uploadFilesFlow(fileUris: List<Uri>): Flow<Resource<ByteArray>> = flow {
         for (fileUri in fileUris) {
-            val contentType = ContentType.parse(context.contentResolver.getType(fileUri)!!)
-            val fileName = getFileName(fileUri)
-
-            val body = context.contentResolver.openInputStream(fileUri)?.use {
-                it.readBytes()
-            }!!
-            client.post<HttpResponse>(path = "media", body = body) {
-                onUpload { bytesSentTotal, contentLength ->
-                    send(Resource.Loading((bytesSentTotal.toDouble() / contentLength.toDouble() * 100.0).toInt()))
-                }
-                contentType(contentType)
-                header(
-                    HttpHeaders.ContentDisposition,
-                    ContentDisposition.File.withParameter(
-                        ContentDisposition.Parameters.FileName,
-                        fileName
+            val flowToEmit = channelFlow<Resource<ByteArray>> {
+                val contentType = ContentType.parse(context.contentResolver.getType(fileUri)!!)
+                val (fileName, fileSize) = getFileNameAndSize(fileUri)
+                client.post<HttpResponse>(
+                    path = "media",
+                    body = OutputStreamContentWithLength(
+                        body = {
+                            context.contentResolver.openInputStream(fileUri)!!.use {
+                                it.copyTo(this)
+                            }
+                        },
+                        contentType = contentType,
+                        contentLength = fileSize
                     )
-                )
-            }.throwOnError()
+                ) {
+                    onUpload { bytesSentTotal, contentLength ->
+                        send(Resource.Loading((bytesSentTotal.toDouble() / contentLength.toDouble() * 100.0).toInt()))
+                    }
+                    header(
+                        HttpHeaders.ContentDisposition,
+                        ContentDisposition.File.withParameter(
+                            ContentDisposition.Parameters.FileName,
+                            fileName
+                        )
+                    )
+                }.throwOnError()
+            }.distinctUntilChanged()
+                .addRetryWithLogin()
+                .addResourceHandling()
+            emitAll(flowToEmit)
         }
-    }.addRetryWithLogin()
-        .addResourceHandling()
+    }
 
     suspend fun uploadFilesInCache() {
         val files = context.cacheDir.listFiles() ?: return
@@ -196,21 +206,23 @@ class Repository @Inject constructor(
         }.addResourceHandling()
     }
 
-    private fun getFileName(uri: Uri): String {
-        var result: String? = null
+    private fun getFileNameAndSize(uri: Uri): Pair<String, Long> {
+        var name = ""
+        var size: Long = 0
         if (uri.scheme == "content") {
             context.contentResolver.query(
                 uri, null, null, null, null
             )?.use { cursor ->
                 if (cursor.moveToFirst()) {
-                    result = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME))
+                    name = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME))
+                    size = cursor.getLong(cursor.getColumnIndex(OpenableColumns.SIZE))
                 }
             }
         }
-        if (result == null) {
-            result = uri.path
+        if (name.isEmpty()) {
+            name = uri.path!!
         }
-        return result!!
+        return Pair(name, size)
     }
 
     private suspend fun getMediaPage(page: Int, pageSize: Int) = flow<List<MediaData>> {
