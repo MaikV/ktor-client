@@ -12,13 +12,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -45,7 +44,6 @@ fun VideoDetailDestination(id: Int) {
         viewModel.setVideoId(id)
     }
 //    AnimatedContent(targetState = videoByteArrayResource) { targetState ->
-    // TODO: Video continues playing in the background on orientation change..
     mediaSource.let {
         when (it) {
             is Resource.Error -> MediaLoadingError(it.throwable) { viewModel.setVideoId(id) }
@@ -91,21 +89,18 @@ fun MediaLoadingComposable(progressPercent: Int) {
 @OptIn(UnstableApi::class)
 @Composable
 fun VideoComposable(mediaSource: MediaSource) {
-    var shouldPlay by remember {
-        mutableStateOf(false)
-    }
-    var shouldDestroy by remember {
-        mutableStateOf(false)
-    }
     val lifecycleOwner = LocalLifecycleOwner.current
-
+    val localContext = LocalContext.current
+    val player = remember(localContext) {
+        ExoPlayer.Builder(localContext).build()
+    }
     LaunchedEffect(key1 = true) {
         lifecycleOwner.lifecycle.addObserver(object : LifecycleEventObserver {
             override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
                 when (event.targetState) {
-                    Lifecycle.State.RESUMED -> shouldPlay = true
-                    Lifecycle.State.STARTED -> shouldPlay = false
-                    Lifecycle.State.DESTROYED -> shouldDestroy = true
+                    Lifecycle.State.RESUMED -> player.play()
+                    Lifecycle.State.STARTED -> player.pause()
+                    Lifecycle.State.DESTROYED -> player.release()
                     else -> {}
                 }
             }
@@ -113,17 +108,11 @@ fun VideoComposable(mediaSource: MediaSource) {
     }
     AndroidView(modifier = Modifier.fillMaxSize(), factory = { context ->
         PlayerView(context).also {
-            it.player = ExoPlayer.Builder(context).build().apply {
+            it.player = player.apply {
                 setMediaSource(mediaSource)
                 repeatMode = Player.REPEAT_MODE_ALL
                 prepare()
             }
-        }
-    }, update = {
-        when {
-            shouldPlay -> it.player?.play()
-            !shouldPlay -> it.player?.pause()
-            shouldDestroy -> it.player?.release()
         }
     })
 }
