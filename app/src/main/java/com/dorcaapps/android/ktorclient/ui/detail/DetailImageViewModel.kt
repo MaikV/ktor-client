@@ -33,7 +33,7 @@ class DetailImageViewModel @Inject constructor(
             repository.getMediaByteArray(imageId)
                 .map { byteArrayResource ->
                     when (byteArrayResource) {
-                        is Resource.Error -> Resource.Error(
+                        is Resource.Failure -> Resource.Failure(
                             byteArrayResource.throwable
                         )
                         is Resource.Loading -> Resource.Loading(

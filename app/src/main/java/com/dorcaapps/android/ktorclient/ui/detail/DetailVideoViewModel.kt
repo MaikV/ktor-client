@@ -35,7 +35,7 @@ class DetailVideoViewModel @Inject constructor(
             repository.getMediaByteArray(videoId)
                 .map { byteArrayResource ->
                     when (byteArrayResource) {
-                        is Resource.Error -> Resource.Error(
+                        is Resource.Failure -> Resource.Failure(
                             byteArrayResource.throwable
                         )
                         is Resource.Loading -> Resource.Loading(

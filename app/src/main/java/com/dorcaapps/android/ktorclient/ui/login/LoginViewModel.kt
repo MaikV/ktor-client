@@ -1,10 +1,9 @@
 package com.dorcaapps.android.ktorclient.ui.login
 
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dorcaapps.android.ktorclient.model.Repository
 import com.dorcaapps.android.ktorclient.model.Resource
+import com.dorcaapps.android.ktorclient.ui.shared.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.launchIn
@@ -13,24 +12,18 @@ import javax.inject.Inject
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(private val repository: Repository) :
-    ViewModel() {
-    val username = MutableLiveData("")
-    val password = MutableLiveData("")
+    BaseViewModel() {
+    val username = MutableStateFlow("Test")
+    val password = MutableStateFlow("Pass")
 
     val loginResource = MutableStateFlow<Resource<Unit>?>(null)
 
-//    val isLoading =
-//        loginResource.map { it is Resource.Loading }.asLiveData(viewModelScope.coroutineContext)
-//    val isLoggedIn =
-//        loginResource.map { it is Resource.Success }.asLiveData(viewModelScope.coroutineContext)
-//    val error = loginResource.filterIsInstance<Resource.Error>().map { it.throwable }
-//        .asLiveData(viewModelScope.coroutineContext)
-
-    fun login(username: String, password: String) {
-        repository.loginWithNewCredentials(username, password)
+    fun login() {
+        repository.loginWithNewCredentials(username.value, password.value)
             .onEach {
                 loginResource.value = it
             }
+            .publishFailure()
             .launchIn(viewModelScope)
     }
 }

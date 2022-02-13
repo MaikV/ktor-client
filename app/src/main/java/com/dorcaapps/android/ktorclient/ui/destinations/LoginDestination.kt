@@ -1,65 +1,46 @@
 package com.dorcaapps.android.ktorclient.ui.destinations
 
-import android.widget.Toast
 import androidx.compose.foundation.layout.Column
-import androidx.compose.material.Button
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.dorcaapps.android.ktorclient.model.Resource
 import com.dorcaapps.android.ktorclient.ui.login.LoginViewModel
+import com.dorcaapps.android.ktorclient.ui.shared.ProgressButton
 
 @Composable
 fun LoginDestination(onLoginValid: () -> Unit) {
     Column {
-        var username by remember {
-            mutableStateOf("Test")
-        }
+        val viewModel: LoginViewModel = hiltViewModel()
+        val username by viewModel.username.collectAsState()
         TextField(
             value = username,
-            onValueChange = { username = it },
+            onValueChange = { viewModel.username.tryEmit(it) },
             placeholder = { Text("Username") }
         )
-        var password by remember {
-            mutableStateOf("Pass")
-        }
+        val password by viewModel.password.collectAsState()
         TextField(
             value = password,
-            onValueChange = { password = it },
+            onValueChange = { viewModel.password.tryEmit(it) },
             placeholder = { Text("Password") }
         )
-        val viewModel: LoginViewModel = hiltViewModel()
-        Button(onClick = {
-            viewModel.login(username, password)
-        }) {
-            Text("Login")
-        }
-        // TODO: Improve this
         val coroutineScope = rememberCoroutineScope()
         val loginState by viewModel.loginResource
             .collectAsState(context = coroutineScope.coroutineContext)
+        ProgressButton(
+            isLoading = loginState is Resource.Loading,
+            onClick = { viewModel.login() }
+        ) {
+            Text("Login")
+        }
         LaunchedEffect(key1 = loginState) {
             if (loginState is Resource.Success) {
                 onLoginValid.invoke()
-            }
-        }
-        val context = LocalContext.current
-        LaunchedEffect(key1 = loginState) {
-            if (loginState is Resource.Error) {
-                Toast.makeText(
-                    context,
-                    (loginState as? Resource.Error)?.throwable?.message,
-                    Toast.LENGTH_SHORT
-                ).show()
             }
         }
     }

@@ -246,7 +246,7 @@ class Repository @Inject constructor(
         onStart {
             emit(Resource.Loading(0))
         }.catch {
-            emit(Resource.Error(it))
+            emit(Resource.Failure(it))
         }.flowOn(Dispatchers.IO)
 
     private fun <T> Flow<T>.addRetryWithLogin() =
