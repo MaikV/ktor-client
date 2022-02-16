@@ -7,15 +7,15 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class ThrowableManager @Inject constructor() {
-    private val _currentThrowableFlow: MutableSharedFlow<Throwable?> = MutableSharedFlow(
+class ExceptionManager @Inject constructor() {
+    private val _currentExceptionFlow: MutableSharedFlow<Exception?> = MutableSharedFlow(
         replay = 0,
         extraBufferCapacity = 1,
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
-    val currentThrowableFlow = _currentThrowableFlow.asSharedFlow()
+    val currentExceptionFlow = _currentExceptionFlow.asSharedFlow()
 
-    fun setThrowable(throwable: Throwable?) {
-        _currentThrowableFlow.tryEmit(throwable)
+    fun setThrowable(exception: Exception?) {
+        _currentExceptionFlow.tryEmit(exception)
     }
 }

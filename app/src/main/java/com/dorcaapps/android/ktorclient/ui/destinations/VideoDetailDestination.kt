@@ -46,7 +46,7 @@ fun VideoDetailDestination(id: Int) {
 //    AnimatedContent(targetState = videoByteArrayResource) { targetState ->
     mediaSource.let {
         when (it) {
-            is Resource.Failure -> MediaLoadingError(it.throwable) { viewModel.setVideoId(id) }
+            is Resource.Failure -> MediaLoadingError(it.exception) { viewModel.setVideoId(id) }
             is Resource.Loading -> MediaLoadingComposable(it.progressPercent)
             is Resource.Success -> VideoComposable(it.data)
         }

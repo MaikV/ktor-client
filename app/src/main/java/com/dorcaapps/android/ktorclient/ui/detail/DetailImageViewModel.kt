@@ -34,7 +34,7 @@ class DetailImageViewModel @Inject constructor(
                 .map { byteArrayResource ->
                     when (byteArrayResource) {
                         is Resource.Failure -> Resource.Failure(
-                            byteArrayResource.throwable
+                            byteArrayResource.exception
                         )
                         is Resource.Loading -> Resource.Loading(
                             byteArrayResource.progressPercent

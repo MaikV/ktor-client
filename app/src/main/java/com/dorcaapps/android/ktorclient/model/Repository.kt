@@ -10,6 +10,7 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import com.dorcaapps.android.ktorclient.extensions.throwOnError
+import com.dorcaapps.android.ktorclient.model.shared.forceCastException
 import com.dorcaapps.android.ktorclient.ui.paging.MediaData
 import com.dorcaapps.android.ktorclient.ui.paging.MediaPagingSource
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -246,7 +247,7 @@ class Repository @Inject constructor(
         onStart {
             emit(Resource.Loading(0))
         }.catch {
-            emit(Resource.Failure(it))
+            emit(Resource.Failure(it.forceCastException()))
         }.flowOn(Dispatchers.IO)
 
     private fun <T> Flow<T>.addRetryWithLogin() =

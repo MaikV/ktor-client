@@ -9,6 +9,6 @@ sealed class Resource<out T>(open val data: T?) {
         override val data: T? = null
     ) : Resource<T>(data = data)
 
-    data class Failure<T>(val throwable: Throwable, override val data: T? = null) :
+    data class Failure<T>(val exception: Exception, override val data: T? = null) :
         Resource<T>(data = data)
 }

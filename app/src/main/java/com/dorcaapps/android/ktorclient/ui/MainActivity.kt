@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedContent
@@ -31,6 +32,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SmallTopAppBar
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -42,8 +45,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
+import com.dorcaapps.android.ktorclient.model.ExceptionManager
 import com.dorcaapps.android.ktorclient.model.Resource
 import com.dorcaapps.android.ktorclient.ui.destinations.Destinations
 import com.dorcaapps.android.ktorclient.ui.destinations.ImageDetailDestination
@@ -54,13 +59,12 @@ import com.dorcaapps.android.ktorclient.ui.shared.extensions.composableDestinati
 import com.dorcaapps.android.ktorclient.ui.theme.AppTheme
 import dagger.hilt.android.AndroidEntryPoint
 import io.ktor.http.ContentType
-import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
-    @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.setFlags(
@@ -69,198 +73,251 @@ class MainActivity : AppCompatActivity() {
         )
         setContent {
             AppTheme {
-                val scrollBehavior = remember {
-                    TopAppBarDefaults.enterAlwaysScrollBehavior()
-                }
-                val navController = rememberNavController()
-                val backStackEntry by navController.currentBackStackEntryFlow.collectAsState(initial = null)
-                val currentRoute = backStackEntry?.destination?.route
+                MainContent()
+            }
+        }
+    }
+}
 
-                val fileRequestContract = object : ActivityResultContracts.GetMultipleContents() {
-                    override fun createIntent(context: Context, input: String): Intent =
-                        super.createIntent(context, input).apply {
-                            putExtra(
-                                Intent.EXTRA_MIME_TYPES,
-                                arrayOf(
-                                    ContentType.Video.Any.toString(),
-                                    ContentType.Image.Any.toString()
-                                )
-                            )
-                        }
-                }
-                val mainViewModel: MainViewModel = hiltViewModel()
-                val currentException by mainViewModel.throwableManager.currentThrowableFlow.collectAsState(
-                    initial = null
-                )
-                currentException?.let {
-                    AlertDialog(
-                        onDismissRequest = { mainViewModel.throwableManager.setThrowable(null) },
-                        confirmButton = {
-                            TextButton(onClick = { mainViewModel.throwableManager.setThrowable(null) }) {
-                                Text(text = stringResource(id = android.R.string.ok))
-                            }
-                        },
-                        title = { Text("There was an error") },
-                        text = { Text(it.message ?: "Unknown error") })
-                }
-                var uploadResource: Resource<ByteArray>? by remember {
-                    mutableStateOf(null)
-                }
-                var filesToUpload by remember {
-                    mutableStateOf<List<Uri>>(emptyList())
-                }
-                var refreshTrigger by remember {
-                    mutableStateOf(false)
-                }
-                LaunchedEffect(key1 = backStackEntry?.destination?.route) {
-                    if (backStackEntry?.destination?.route == Destinations.PagedGrid.route) {
-                        refreshTrigger = !refreshTrigger
-                    }
-                }
-                LaunchedEffect(key1 = filesToUpload) {
-                    if (filesToUpload.isEmpty()) {
-                        uploadResource = null
-                        return@LaunchedEffect
-                    }
-                    mainViewModel.uploadFilesFlow(filesToUpload).collect {
-                        uploadResource = it
-                    }
-                    filesToUpload = emptyList()
-                    refreshTrigger = !refreshTrigger
-                }
-                val fileLauncher = rememberLauncherForActivityResult(
-                    contract = fileRequestContract,
-                    onResult = {
-                        filesToUpload = it
-                    }
-                )
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
+@Composable
+fun MainContent() {
+    val navController = rememberNavController()
+    val currentBackStackEntry by navController.currentBackStackEntryFlow.collectAsState(initial = null)
 
-                Scaffold(
-                    modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-                    containerColor = MaterialTheme.colorScheme.background,
-                    topBar = {
-                        SmallTopAppBar(
-                            title = { Text(text = "Title") },
-                            scrollBehavior = scrollBehavior,
-                            navigationIcon = {
-                                val canNavigateUp =
-                                    currentRoute != null &&
-                                            currentRoute != Destinations.Login.route &&
-                                            currentRoute != Destinations.PagedGrid.route
-                                AnimatedVisibility(visible = canNavigateUp) {
-                                    IconButton(onClick = { navController.navigateUp() }) {
-                                        Icon(
-                                            imageVector = Icons.Filled.ArrowBack,
-                                            contentDescription = "Back"
-                                        )
-                                    }
-                                }
-                            },
-                            actions = {
-                                AnimatedContent(targetState = currentRoute) { targetState ->
-                                    when (targetState) {
-                                        Destinations.PagedGrid.route -> {
-                                            Row {
-                                                IconButton(onClick = {
-                                                    fileLauncher.launch("*/*")
-                                                }) {
-                                                    Icon(
-                                                        imageVector = Icons.Filled.Share,
-                                                        contentDescription = "Upload"
-                                                    )
-                                                }
-                                                IconButton(onClick = {
-                                                    refreshTrigger = !refreshTrigger
-                                                }) {
-                                                    Icon(
-                                                        imageVector = Icons.Filled.Refresh,
-                                                        contentDescription = "Refresh"
-                                                    )
-                                                }
-                                            }
-                                        }
-                                        Destinations.PagedGrid.VideoDetail.route,
-                                        Destinations.PagedGrid.ImageDetail.route -> {
-                                            val coroutineScope = rememberCoroutineScope()
-                                            IconButton(
-                                                onClick = {
-                                                    val id = backStackEntry?.arguments?.getInt("id")
-                                                        ?: return@IconButton
-                                                    coroutineScope.launch {
-                                                        val success = mainViewModel.delete(id)
-                                                        val route =
-                                                            backStackEntry?.destination?.route
-                                                        if (
-                                                            success
-                                                            && (route == Destinations.PagedGrid.VideoDetail.route
-                                                                    || route == Destinations.PagedGrid.ImageDetail.route)
-                                                        ) {
-                                                            navController.popBackStack()
-                                                        }
-                                                    }
-                                                }) {
-                                                Icon(
-                                                    imageVector = Icons.Filled.Delete,
-                                                    contentDescription = "Delete"
-                                                )
-                                            }
-                                        }
-                                        else -> {}
-                                    }
-                                }
-                            })
-                    }
-                ) {
-                    Column {
-                        val castUploadResource = uploadResource as? Resource.Loading
-                        AnimatedVisibility(visible = castUploadResource != null) {
-                            LinearProgressIndicator(
-                                progress = (castUploadResource?.progressPercent ?: 0) / 100f,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-                        NavHost(
-                            navController = navController,
-                            startDestination = Destinations.Login.route
-                        ) {
-                            composableDestination(Destinations.Login) {
-                                LoginDestination {
-                                    navController.navigate(Destinations.PagedGrid.route) {
-                                        popUpTo(Destinations.Login.route) { inclusive = true }
-                                    }
-                                }
-                            }
-                            composableDestination(Destinations.PagedGrid) {
-                                PagedGridDestination(
-                                    refreshTrigger = refreshTrigger,
-                                    onImageMediaClicked = {
-                                        navController.navigate(
-                                            route = Destinations.PagedGrid.ImageDetail.route.replace(
-                                                "{id}",
-                                                it.toString()
-                                            )
-                                        )
-                                    },
-                                    onVideoMediaClicked = {
-                                        navController.navigate(
-                                            route = Destinations.PagedGrid.VideoDetail.route.replace(
-                                                "{id}",
-                                                it.toString()
-                                            )
-                                        )
-                                    }
-                                )
-                            }
-                            composableDestination(Destinations.PagedGrid.ImageDetail) {
-                                ImageDetailDestination(it.arguments!!.getInt("id"))
-                            }
-                            composableDestination(Destinations.PagedGrid.VideoDetail) {
-                                VideoDetailDestination(it.arguments!!.getInt("id"))
-                            }
-                        }
+    val mainViewModel: MainViewModel = hiltViewModel()
+
+    ExceptionDialog(exceptionManager = mainViewModel.exceptionManager)
+
+    val scrollBehavior = remember {
+        TopAppBarDefaults.enterAlwaysScrollBehavior()
+    }
+    val (refreshing, refreshTrigger) = remember {
+        mutableStateOf(false)
+    }
+
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            MainAppBar(
+                currentBackStackEntry,
+                scrollBehavior = scrollBehavior,
+                navigateBack = { navController.navigateUp() },
+                deleteMedia = { mainViewModel.delete(it) },
+                uploadFlow = mainViewModel.fileUploadResourceFlow,
+                uploadFiles = { mainViewModel.uploadFiles(it) },
+                triggerRefresh = { refreshTrigger(!refreshing) }
+            )
+        }
+    ) {
+        NavHost(
+            navController = navController,
+            startDestination = Destinations.Login.route
+        ) {
+            composableDestination(Destinations.Login) {
+                LoginDestination {
+                    navController.navigate(Destinations.PagedGrid.route) {
+                        popUpTo(Destinations.Login.route) { inclusive = true }
                     }
                 }
             }
+            composableDestination(Destinations.PagedGrid) {
+                PagedGridDestination(
+                    refreshTrigger = refreshing,
+                    onImageMediaClicked = {
+                        navController.navigate(
+                            route = Destinations.PagedGrid.ImageDetail.route.replace(
+                                "{id}",
+                                it.toString()
+                            )
+                        )
+                    },
+                    onVideoMediaClicked = {
+                        navController.navigate(
+                            route = Destinations.PagedGrid.VideoDetail.route.replace(
+                                "{id}",
+                                it.toString()
+                            )
+                        )
+                    }
+                )
+            }
+            composableDestination(Destinations.PagedGrid.ImageDetail) {
+                ImageDetailDestination(it.arguments!!.getInt("id"))
+            }
+            composableDestination(Destinations.PagedGrid.VideoDetail) {
+                VideoDetailDestination(it.arguments!!.getInt("id"))
+            }
+        }
+    }
+}
+
+@Composable
+fun ExceptionDialog(exceptionManager: ExceptionManager) {
+    val currentException by exceptionManager.currentExceptionFlow.collectAsState(
+        initial = null
+    )
+    currentException?.let {
+        AlertDialog(
+            onDismissRequest = { exceptionManager.setThrowable(null) },
+            confirmButton = {
+                TextButton(onClick = { exceptionManager.setThrowable(null) }) {
+                    Text(text = stringResource(id = android.R.string.ok))
+                }
+            },
+            title = { Text("There was an error") },
+            text = { Text(it.message ?: "Unknown error") })
+    }
+}
+
+@OptIn(ExperimentalAnimationApi::class)
+@Composable
+fun MainAppBar(
+    backStackEntry: NavBackStackEntry?,
+    scrollBehavior: TopAppBarScrollBehavior,
+    navigateBack: () -> Unit,
+    deleteMedia: suspend (id: Int) -> Boolean,
+    uploadFlow: Flow<Resource<ByteArray>?>,
+    uploadFiles: suspend (List<Uri>) -> Unit,
+    triggerRefresh: () -> Unit
+) {
+    LaunchedEffect(key1 = backStackEntry?.destination?.route) {
+        if (backStackEntry?.destination?.route == Destinations.PagedGrid.route) {
+            triggerRefresh()
+        }
+    }
+    var filesToUpload by remember {
+        mutableStateOf<List<Uri>>(emptyList())
+    }
+    LaunchedEffect(key1 = filesToUpload) {
+        if (filesToUpload.isEmpty()) {
+            return@LaunchedEffect
+        }
+        uploadFiles(filesToUpload)
+        filesToUpload = emptyList()
+        triggerRefresh()
+    }
+    val fileLauncher: ActivityResultLauncher<String> = rememberLauncherForActivityResult(
+        contract = getFileRequestContract(),
+        onResult = {
+            filesToUpload = it
+        }
+    )
+    val currentRoute = backStackEntry?.destination?.route
+    Column {
+        SmallTopAppBar(
+            title = { Text(text = "Title") },
+            scrollBehavior = scrollBehavior,
+            navigationIcon = {
+                val canNavigateUp =
+                    currentRoute != null &&
+                            currentRoute != Destinations.Login.route &&
+                            currentRoute != Destinations.PagedGrid.route
+                AnimatedVisibility(visible = canNavigateUp) {
+                    IconButton(onClick = navigateBack) {
+                        Icon(
+                            imageVector = Icons.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
+                }
+            },
+            actions = {
+                MainAppBarActions(
+                    startFileUpload = { fileLauncher.launch("*/*") },
+                    backStackEntry = backStackEntry,
+                    navigateBack = navigateBack,
+                    deleteMedia = deleteMedia,
+                    triggerRefresh = triggerRefresh
+                )
+            })
+
+        val uploadResource by uploadFlow.collectAsState(initial = null)
+        val castUploadResource = uploadResource as? Resource.Loading
+        AnimatedVisibility(visible = castUploadResource != null) {
+            LinearProgressIndicator(
+                progress = (castUploadResource?.progressPercent ?: 0) / 100f,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
+
+private fun getFileRequestContract() =
+    object : ActivityResultContracts.GetMultipleContents() {
+        override fun createIntent(context: Context, input: String): Intent =
+            super.createIntent(context, input).apply {
+                putExtra(
+                    Intent.EXTRA_MIME_TYPES,
+                    arrayOf(
+                        ContentType.Video.Any.toString(),
+                        ContentType.Image.Any.toString()
+                    )
+                )
+            }
+    }
+
+@OptIn(ExperimentalAnimationApi::class)
+@Composable
+fun MainAppBarActions(
+    startFileUpload: () -> Unit,
+    backStackEntry: NavBackStackEntry?,
+    navigateBack: () -> Unit,
+    deleteMedia: suspend (id: Int) -> Boolean,
+    triggerRefresh: () -> Unit
+) {
+    val currentRoute = backStackEntry?.destination?.route
+
+    AnimatedContent(targetState = currentRoute) { targetState ->
+        when (targetState) {
+            Destinations.PagedGrid.route -> {
+                Row {
+                    IconButton(onClick = {
+                        startFileUpload()
+                    }) {
+                        Icon(
+                            imageVector = Icons.Filled.Share,
+                            contentDescription = "Upload"
+                        )
+                    }
+                    IconButton(onClick = {
+                        triggerRefresh()
+                    }) {
+                        Icon(
+                            imageVector = Icons.Filled.Refresh,
+                            contentDescription = "Refresh"
+                        )
+                    }
+                }
+            }
+            Destinations.PagedGrid.VideoDetail.route,
+            Destinations.PagedGrid.ImageDetail.route -> {
+                val coroutineScope = rememberCoroutineScope()
+                IconButton(
+                    onClick = {
+                        val id = backStackEntry?.arguments?.getInt("id")
+                            ?: return@IconButton
+                        coroutineScope.launch {
+                            val success = deleteMedia(id)
+                            val route =
+                                backStackEntry.destination.route
+                            if (
+                                success
+                                && (route == Destinations.PagedGrid.VideoDetail.route
+                                        || route == Destinations.PagedGrid.ImageDetail.route)
+                            ) {
+                                navigateBack()
+                            }
+                        }
+                    }) {
+                    Icon(
+                        imageVector = Icons.Filled.Delete,
+                        contentDescription = "Delete"
+                    )
+                }
+            }
+            else -> {}
         }
     }
 }
