@@ -40,7 +40,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
@@ -101,7 +100,7 @@ fun MainContent() {
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             MainAppBar(
-                currentBackStackEntry,
+                backStackEntry = currentBackStackEntry,
                 scrollBehavior = scrollBehavior,
                 navigateBack = { navController.navigateUp() },
                 deleteMedia = { mainViewModel.delete(it) },
@@ -187,21 +186,22 @@ fun MainAppBar(
             triggerRefresh()
         }
     }
-    var filesToUpload by remember {
-        mutableStateOf<List<Uri>>(emptyList())
-    }
-    LaunchedEffect(key1 = filesToUpload) {
-        if (filesToUpload.isEmpty()) {
-            return@LaunchedEffect
-        }
-        uploadFiles(filesToUpload)
-        filesToUpload = emptyList()
-        triggerRefresh()
+    val coroutineScope = rememberCoroutineScope()
+    val (uploading, changeUploading) = remember {
+        mutableStateOf(false)
     }
     val fileLauncher: ActivityResultLauncher<String> = rememberLauncherForActivityResult(
         contract = getFileRequestContract(),
-        onResult = {
-            filesToUpload = it
+        onResult = { filesToUpload ->
+            if (filesToUpload.isEmpty()) {
+                return@rememberLauncherForActivityResult
+            }
+            coroutineScope.launch {
+                changeUploading(true)
+                uploadFiles(filesToUpload)
+                changeUploading(false)
+                triggerRefresh()
+            }
         }
     )
     val currentRoute = backStackEntry?.destination?.route
@@ -225,6 +225,7 @@ fun MainAppBar(
             },
             actions = {
                 MainAppBarActions(
+                    isUploading = uploading,
                     startFileUpload = { fileLauncher.launch("*/*") },
                     backStackEntry = backStackEntry,
                     navigateBack = navigateBack,
@@ -261,6 +262,7 @@ private fun getFileRequestContract() =
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun MainAppBarActions(
+    isUploading: Boolean,
     startFileUpload: () -> Unit,
     backStackEntry: NavBackStackEntry?,
     navigateBack: () -> Unit,
@@ -275,7 +277,7 @@ fun MainAppBarActions(
                 Row {
                     IconButton(onClick = {
                         startFileUpload()
-                    }) {
+                    }, enabled = !isUploading) {
                         Icon(
                             imageVector = Icons.Filled.Share,
                             contentDescription = "Upload"
