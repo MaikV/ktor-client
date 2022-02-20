@@ -10,9 +10,10 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import com.dorcaapps.android.ktorclient.extensions.throwOnError
+import com.dorcaapps.android.ktorclient.model.shared.MediaData
+import com.dorcaapps.android.ktorclient.model.shared.MediaPagingSource
+import com.dorcaapps.android.ktorclient.model.shared.OutputStreamContentWithLength
 import com.dorcaapps.android.ktorclient.model.shared.forceCastException
-import com.dorcaapps.android.ktorclient.ui.paging.MediaData
-import com.dorcaapps.android.ktorclient.ui.paging.MediaPagingSource
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.ktor.client.HttpClient
 import io.ktor.client.features.ClientRequestException
@@ -207,6 +208,7 @@ class Repository @Inject constructor(
         }.addResourceHandling()
     }
 
+
     private fun getFileNameAndSize(uri: Uri): Pair<String, Long> {
         var name = ""
         var size: Long = 0
@@ -214,9 +216,11 @@ class Repository @Inject constructor(
             context.contentResolver.query(
                 uri, null, null, null, null
             )?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                    name = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME))
-                    size = cursor.getLong(cursor.getColumnIndex(OpenableColumns.SIZE))
+                val displayNameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
+                if (cursor.moveToFirst() && displayNameIndex > -1 && sizeIndex > -1) {
+                    name = cursor.getString(displayNameIndex)
+                    size = cursor.getLong(sizeIndex)
                 }
             }
         }

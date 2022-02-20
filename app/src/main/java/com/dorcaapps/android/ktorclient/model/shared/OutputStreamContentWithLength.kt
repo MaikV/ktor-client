@@ -1,4 +1,4 @@
-package com.dorcaapps.android.ktorclient.model
+package com.dorcaapps.android.ktorclient.model.shared
 
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode

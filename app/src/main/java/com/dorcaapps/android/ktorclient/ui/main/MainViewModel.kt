@@ -1,4 +1,4 @@
-package com.dorcaapps.android.ktorclient.ui
+package com.dorcaapps.android.ktorclient.ui.main
 
 import android.net.Uri
 import com.dorcaapps.android.ktorclient.model.Repository

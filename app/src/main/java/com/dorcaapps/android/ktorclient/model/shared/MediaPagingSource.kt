@@ -1,4 +1,4 @@
-package com.dorcaapps.android.ktorclient.ui.paging
+package com.dorcaapps.android.ktorclient.model.shared
 
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
@@ -24,6 +24,5 @@ class MediaPagingSource(
         }
     }
 
-    // Fraglich, ob das das richtige macht
     override fun getRefreshKey(state: PagingState<Int, MediaData>): Int? = null
 }

@@ -1,9 +1,9 @@
 @file:UseSerializers(serializerClasses = [ContentTypeSerializer::class])
 
-package com.dorcaapps.android.ktorclient.ui.paging
+package com.dorcaapps.android.ktorclient.model.shared
 
 import com.dorcaapps.android.ktorclient.model.ContentTypeSerializer
-import io.ktor.http.*
+import io.ktor.http.ContentType
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.UseSerializers
 
