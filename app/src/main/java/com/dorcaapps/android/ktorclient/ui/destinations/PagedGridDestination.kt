@@ -25,9 +25,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
+import com.dorcaapps.android.ktorclient.model.repository.PreviewRepository
 import com.dorcaapps.android.ktorclient.ui.paging.PagingViewModel
 import io.ktor.http.ContentType
 import kotlinx.coroutines.yield
@@ -35,11 +37,11 @@ import kotlinx.coroutines.yield
 @OptIn(ExperimentalFoundationApi::class, ExperimentalAnimationApi::class)
 @Composable
 fun PagedGridDestination(
+    viewModel: PagingViewModel = hiltViewModel(),
     refreshTrigger: Boolean,
     onImageMediaClicked: (id: Int) -> Unit,
     onVideoMediaClicked: (id: Int) -> Unit
 ) {
-    val viewModel: PagingViewModel = hiltViewModel()
     val mediaData = viewModel.pagingFlow.collectAsLazyPagingItems()
     LaunchedEffect(refreshTrigger) {
         mediaData.refresh()
@@ -84,6 +86,18 @@ fun PagedGridDestination(
             }
         }
     }
+}
+
+@Preview
+@Composable
+fun PagedGridDestination_Preview() {
+    val viewModel = PagingViewModel(PreviewRepository())
+    PagedGridDestination(
+        viewModel = viewModel,
+        refreshTrigger = true,
+        onImageMediaClicked = {},
+        onVideoMediaClicked = {}
+    )
 }
 
 @OptIn(ExperimentalFoundationApi::class)

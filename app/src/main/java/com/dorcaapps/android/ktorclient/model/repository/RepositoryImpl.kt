@@ -1,4 +1,4 @@
-package com.dorcaapps.android.ktorclient.model
+package com.dorcaapps.android.ktorclient.model.repository
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -10,6 +10,9 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import com.dorcaapps.android.ktorclient.extensions.throwOnError
+import com.dorcaapps.android.ktorclient.model.AuthManager
+import com.dorcaapps.android.ktorclient.model.OrderType
+import com.dorcaapps.android.ktorclient.model.Resource
 import com.dorcaapps.android.ktorclient.model.shared.MediaData
 import com.dorcaapps.android.ktorclient.model.shared.MediaPagingSource
 import com.dorcaapps.android.ktorclient.model.shared.OutputStreamContentWithLength
@@ -60,11 +63,11 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class Repository @Inject constructor(
+class RepositoryImpl @Inject constructor(
     private val client: HttpClient,
     private val authManager: AuthManager,
     @ApplicationContext private val context: Context
-) {
+) : Repository {
     private val mediaCacheNew = lruCache<Int, ByteArray>(
         maxSize = 60_000_000,
         sizeOf = { _, byteArray ->
@@ -89,21 +92,22 @@ class Repository @Inject constructor(
         client.get<Unit>(path = "login")
     }.shareIn(CoroutineScope(client.coroutineContext), SharingStarted.Eagerly)
 
-    fun getMediaByteArray(id: Int): Flow<Resource<ByteArray>> = channelFlow<Resource<ByteArray>> {
-        mediaCacheNew[id]?.let {
-            send(Resource.Success(it))
-            return@channelFlow
-        }
-        val result = client.get<ByteArray>(path = "media/$id") {
-            onDownload { bytesSentTotal, contentLength ->
-                send(Resource.Loading((bytesSentTotal.toDouble() / contentLength.toDouble() * 100.0).toInt()))
+    override fun getMediaByteArray(id: Int): Flow<Resource<ByteArray>> =
+        channelFlow<Resource<ByteArray>> {
+            mediaCacheNew[id]?.let {
+                send(Resource.Success(it))
+                return@channelFlow
             }
-        }
-        mediaCacheNew.put(id, result)
-        send(Resource.Success(result))
-    }.addRetryWithLogin().addResourceHandling()
+            val result = client.get<ByteArray>(path = "media/$id") {
+                onDownload { bytesSentTotal, contentLength ->
+                    send(Resource.Loading((bytesSentTotal.toDouble() / contentLength.toDouble() * 100.0).toInt()))
+                }
+            }
+            mediaCacheNew.put(id, result)
+            send(Resource.Success(result))
+        }.addRetryWithLogin().addResourceHandling()
 
-    fun getThumbnailBitmap(id: Int): Flow<Resource<Bitmap>> = flow<Resource<Bitmap>> {
+    override fun getThumbnailBitmap(id: Int): Flow<Resource<Bitmap>> = flow<Resource<Bitmap>> {
         thumbnailCache[id]?.let { thumbnail ->
             emit(Resource.Success(thumbnail))
             return@flow
@@ -117,7 +121,7 @@ class Repository @Inject constructor(
         emit(Resource.Success(bitmap))
     }.addRetryWithLogin().addResourceHandling()
 
-    fun getPaging(): Flow<PagingData<MediaData>> {
+    override fun getPaging(): Flow<PagingData<MediaData>> {
         val pageSize = 6
         return Pager(
             PagingConfig(
@@ -135,7 +139,7 @@ class Repository @Inject constructor(
         ).flow
     }
 
-    fun uploadFilesFlow(fileUris: List<Uri>): Flow<Resource<ByteArray>> = flow {
+    override fun uploadFilesFlow(fileUris: List<Uri>): Flow<Resource<ByteArray>> = flow {
         for (fileUri in fileUris) {
             val flowToEmit = channelFlow<Resource<ByteArray>> {
                 val contentType = ContentType.parse(context.contentResolver.getType(fileUri)!!)
@@ -170,7 +174,7 @@ class Repository @Inject constructor(
         }
     }
 
-    suspend fun uploadFilesInCache() {
+    override suspend fun uploadFilesInCache() {
         val files = context.cacheDir.listFiles() ?: return
         val contentType = ContentType.Video.Any
         for (file in files) {
@@ -195,11 +199,11 @@ class Repository @Inject constructor(
         }
     }
 
-    fun delete(mediaId: Int): Flow<Resource<Unit>> = flow<Resource<Unit>> {
+    override fun delete(mediaId: Int): Flow<Resource<Unit>> = flow<Resource<Unit>> {
         emit(Resource.Success(client.delete(path = "media/$mediaId")))
     }.addResourceHandling().addRetryWithLogin()
 
-    fun loginWithNewCredentials(username: String, password: String): Flow<Resource<Unit>> {
+    override fun loginWithNewCredentials(username: String, password: String): Flow<Resource<Unit>> {
         authManager.username = username
         authManager.password = password
         authManager.reloadAuthProvider()

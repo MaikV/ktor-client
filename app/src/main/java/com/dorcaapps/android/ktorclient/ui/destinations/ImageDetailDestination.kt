@@ -5,14 +5,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.dorcaapps.android.ktorclient.model.Resource
+import com.dorcaapps.android.ktorclient.model.repository.PreviewRepository
 import com.dorcaapps.android.ktorclient.ui.detail.DetailImageViewModel
 import kotlinx.coroutines.delay
 
 @Composable
-fun ImageDetailDestination(id: Int) {
-    val viewModel: DetailImageViewModel = hiltViewModel()
+fun ImageDetailDestination(id: Int, viewModel: DetailImageViewModel = hiltViewModel()) {
     val mediaSource by viewModel.imageResource.collectAsState()
     LaunchedEffect(key1 = true) {
         delay(500)
@@ -25,4 +26,11 @@ fun ImageDetailDestination(id: Int) {
             is Resource.Success -> Image(bitmap = it.data, contentDescription = "Image")
         }
     }
+}
+
+@Preview
+@Composable
+fun ImageDetailDestination_Preview() {
+    val viewModel = DetailImageViewModel(PreviewRepository())
+    ImageDetailDestination(1, viewModel = viewModel)
 }

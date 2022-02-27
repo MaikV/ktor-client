@@ -9,8 +9,8 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.ByteArrayDataSource
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.MediaSource
-import com.dorcaapps.android.ktorclient.model.Repository
 import com.dorcaapps.android.ktorclient.model.Resource
+import com.dorcaapps.android.ktorclient.model.repository.Repository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow

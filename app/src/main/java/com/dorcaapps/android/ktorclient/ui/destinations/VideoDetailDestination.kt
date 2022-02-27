@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -30,14 +31,14 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.ui.PlayerView
 import com.dorcaapps.android.ktorclient.model.Resource
+import com.dorcaapps.android.ktorclient.model.repository.PreviewRepository
 import com.dorcaapps.android.ktorclient.ui.detail.DetailVideoViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
-fun VideoDetailDestination(id: Int) {
-    val viewModel: DetailVideoViewModel = hiltViewModel()
+fun VideoDetailDestination(id: Int, viewModel: DetailVideoViewModel = hiltViewModel()) {
     val mediaSource by viewModel.mediaSource.collectAsState()
     LaunchedEffect(key1 = true) {
         delay(500)
@@ -115,4 +116,11 @@ fun VideoComposable(mediaSource: MediaSource) {
             }
         }
     })
+}
+
+@Preview
+@Composable
+fun VideoDetailDestination_Preview() {
+    val viewModel = DetailVideoViewModel(PreviewRepository())
+    VideoDetailDestination(id = 1, viewModel = viewModel)
 }

@@ -7,8 +7,8 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.util.UnstableApi
-import com.dorcaapps.android.ktorclient.model.Repository
 import com.dorcaapps.android.ktorclient.model.Resource
+import com.dorcaapps.android.ktorclient.model.repository.Repository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow

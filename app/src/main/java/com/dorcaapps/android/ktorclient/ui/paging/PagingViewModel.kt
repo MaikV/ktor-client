@@ -4,8 +4,8 @@ import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.cachedIn
-import com.dorcaapps.android.ktorclient.model.Repository
 import com.dorcaapps.android.ktorclient.model.Resource
+import com.dorcaapps.android.ktorclient.model.repository.Repository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.map

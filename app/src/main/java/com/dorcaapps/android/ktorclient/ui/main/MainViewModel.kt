@@ -1,8 +1,8 @@
 package com.dorcaapps.android.ktorclient.ui.main
 
 import android.net.Uri
-import com.dorcaapps.android.ktorclient.model.Repository
 import com.dorcaapps.android.ktorclient.model.Resource
+import com.dorcaapps.android.ktorclient.model.repository.Repository
 import com.dorcaapps.android.ktorclient.ui.shared.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.BufferOverflow
