@@ -11,6 +11,7 @@ import com.dorcaapps.android.ktorclient.model.Resource
 import com.dorcaapps.android.ktorclient.model.repository.Repository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -25,7 +26,8 @@ import javax.inject.Inject
 class DetailImageViewModel @Inject constructor(
     private val repository: Repository
 ) : ViewModel() {
-    private val imageId = MutableSharedFlow<Int?>()
+    private val imageId =
+        MutableSharedFlow<Int?>(replay = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
 
     @OptIn(UnstableApi::class)
     val imageResource: StateFlow<Resource<ImageBitmap>> =

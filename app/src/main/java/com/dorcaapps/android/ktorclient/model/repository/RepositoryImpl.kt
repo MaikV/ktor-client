@@ -19,6 +19,7 @@ import com.dorcaapps.android.ktorclient.model.shared.OutputStreamContentWithLeng
 import com.dorcaapps.android.ktorclient.model.shared.forceCastException
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.ktor.client.HttpClient
+import io.ktor.client.call.receive
 import io.ktor.client.features.ClientRequestException
 import io.ktor.client.features.onDownload
 import io.ktor.client.features.onUpload
@@ -27,18 +28,25 @@ import io.ktor.client.request.forms.append
 import io.ktor.client.request.forms.formData
 import io.ktor.client.request.forms.submitFormWithBinaryData
 import io.ktor.client.request.get
+import io.ktor.client.request.head
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.HttpStatement
 import io.ktor.client.statement.readBytes
 import io.ktor.http.ContentDisposition
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.contentLength
+import io.ktor.utils.io.ByteReadChannel
+import io.ktor.utils.io.core.isNotEmpty
+import io.ktor.utils.io.core.readBytes
 import io.ktor.utils.io.core.use
 import io.ktor.utils.io.core.writeFully
+import io.ktor.utils.io.readRemaining
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
@@ -106,6 +114,24 @@ class RepositoryImpl @Inject constructor(
             mediaCacheNew.put(id, result)
             send(Resource.Success(result))
         }.addRetryWithLogin().addResourceHandling()
+
+    override fun getContentLengthOfResource(uri: Uri): Flow<Long?> = flow {
+        emit(client.head<HttpResponse>(urlString = uri.toString()).contentLength())
+    }.addRetryWithLogin()
+
+    override fun getBytesOfPartialResource(uri: Uri, range: IntRange): Flow<ByteArray> = flow {
+        client.get<HttpStatement>(urlString = uri.toString(), block = {
+            header(HttpHeaders.Range, "bytes=${range.first}-${range.last}")
+        }).execute { response ->
+            val channel: ByteReadChannel = response.receive()
+            while (!channel.isClosedForRead) {
+                val packet = channel.readRemaining(DEFAULT_BUFFER_SIZE.toLong())
+                while (packet.isNotEmpty) {
+                    emit(packet.readBytes())
+                }
+            }
+        }
+    }.addRetryWithLogin()
 
     override fun getThumbnailBitmap(id: Int): Flow<Resource<Bitmap>> = flow<Resource<Bitmap>> {
         thumbnailCache[id]?.let { thumbnail ->

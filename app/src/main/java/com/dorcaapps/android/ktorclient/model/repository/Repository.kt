@@ -13,6 +13,9 @@ interface Repository {
     fun getPaging(): Flow<PagingData<MediaData>>
     fun uploadFilesFlow(fileUris: List<Uri>): Flow<Resource<ByteArray>>
 
+    fun getContentLengthOfResource(uri: Uri): Flow<Long?>
+    fun getBytesOfPartialResource(uri: Uri, range: IntRange): Flow<ByteArray>
+
     suspend fun uploadFilesInCache()
     fun delete(mediaId: Int): Flow<Resource<Unit>>
     fun loginWithNewCredentials(username: String, password: String): Flow<Resource<Unit>>

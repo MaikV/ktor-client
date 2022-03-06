@@ -20,7 +20,10 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object HttpClientModule {
-    private const val DEFAULT_REQUEST_PORT = 8080
+    const val DEFAULT_REQUEST_PORT = 8080
+    val DEFAULT_URL_PROTOCOL = URLProtocol.HTTP
+    const val DEFAULT_HOST = "192.168.0.65"
+
     @Provides
     @Singleton
     fun provideHttpClient(authManager: AuthManager) = HttpClient(OkHttp) {
@@ -36,10 +39,10 @@ object HttpClientModule {
             serializer = KotlinxSerializer()
         }
         install(DefaultRequest) {
-            url.protocol = URLProtocol.HTTP
+            url.protocol = DEFAULT_URL_PROTOCOL
             url.port = DEFAULT_REQUEST_PORT
 //            url.host = "192.168.178.21"
-            url.host = "192.168.0.65"
+            url.host = DEFAULT_HOST
         }
         install(HttpCookies) {
             storage = AcceptAllCookiesStorage()

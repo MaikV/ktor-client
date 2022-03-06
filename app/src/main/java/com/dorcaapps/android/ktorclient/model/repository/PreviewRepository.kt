@@ -16,6 +16,9 @@ class PreviewRepository : Repository {
     override fun getPaging(): Flow<PagingData<MediaData>> = emptyFlow()
 
     override fun uploadFilesFlow(fileUris: List<Uri>): Flow<Resource<ByteArray>> = emptyFlow()
+    override fun getContentLengthOfResource(uri: Uri): Flow<Long?> = emptyFlow()
+
+    override fun getBytesOfPartialResource(uri: Uri, range: IntRange): Flow<ByteArray> = emptyFlow()
 
     override suspend fun uploadFilesInCache() {
     }
